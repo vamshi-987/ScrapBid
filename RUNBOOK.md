@@ -10,7 +10,10 @@ cd ScrapBid
 cp .env.example .env
 docker compose up --build -d
 docker compose exec backend python manage.py migrate
+docker compose exec backend python manage.py seed_demo
 ```
+
+`seed_demo` creates the demo accounts listed in the README. It's safe to run again: it restores the demo accounts without duplicating them. It refuses to run in production.
 
 The first start takes a minute or two while images build and frontend dependencies install. Then:
 
@@ -32,7 +35,7 @@ Expected output: `{"status":"ok","checks":{"database":"ok","storage":"ok"}}`. Th
 ### Logging in locally
 
 1. Open http://localhost and choose **Log in**.
-2. Enter any valid Indian mobile number, for example `98765 43210`.
+2. Enter a demo number from the README, for example `9000000002`, or any valid Indian mobile number.
 3. Enter the code `123456` (the `DEV_FIXED_OTP` value). With `DEV_FIXED_OTP` empty, codes are random. Find them in the log:
 
    ```bash
@@ -40,6 +43,18 @@ Expected output: `{"status":"ok","checks":{"database":"ok","storage":"ok"}}`. Th
    ```
 
    The log shows the number masked, for example `Login code for +91XXXXXX3210: 123456`.
+
+### Django admin
+
+Open http://localhost/admin. Its login page sends you to the web app's phone login, then brings you back. Only staff accounts get in, such as the seeded admin `9000000001`. Other logged-in users get "403: no admin access".
+
+To make another account an admin, use the admin (Users, then tick **Is staff** and **Is superuser**) or the shell:
+
+```bash
+docker compose exec backend python manage.py shell -c "from accounts.models import User; User.objects.filter(phone='+91XXXXXXXXXX').update(is_staff=True, is_superuser=True)"
+```
+
+To suspend an account, go to Users in the admin, tick the account and choose **Suspend selected accounts**. The user is logged out straight away and can't log in again until reactivated.
 
 Editing files under `frontend/src` or `backend/` reloads automatically. Frontend dependencies live in a Docker volume, not in `frontend/node_modules` on your machine. They reinstall automatically when `package-lock.json` changes.
 
@@ -191,4 +206,5 @@ docker compose exec backend python manage.py shell -c "from accounts.models impo
 docker compose down -v
 docker compose up --build -d
 docker compose exec backend python manage.py migrate
+docker compose exec backend python manage.py seed_demo
 ```
