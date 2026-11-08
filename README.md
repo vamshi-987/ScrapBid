@@ -24,8 +24,11 @@ Everything runs in Docker Compose, locally and in production.
 | `backend` | Django REST API and Django admin |
 | `frontend` | React web app (Vite dev server locally) |
 | `caddy` | Serves everything on one origin: `/api`, `/admin` and `/static` go to Django, everything else goes to the web app |
+| `scheduler` | Runs timed jobs (Django management commands) every few minutes. No Celery or Redis. |
 
-The app and the API share one origin, so the browser uses session cookies with CSRF protection, with no CORS setup needed. A scheduler for timed jobs will be added next.
+The app and the API share one origin, so the browser uses session cookies with CSRF protection, with no CORS setup needed.
+
+**CI:** GitHub Actions runs lint and tests on every push and pull request, using the same Docker Compose services and pinned images as local development.
 
 ## Tech stack
 
