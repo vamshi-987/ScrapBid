@@ -28,6 +28,11 @@ class OtpVerifySerializer(serializers.Serializer):
 
 
 class MeSerializer(serializers.ModelSerializer):
+    roles = serializers.SerializerMethodField()
+
     class Meta:
         model = User
-        fields = ["id", "phone", "is_staff"]
+        fields = ["id", "phone", "roles", "is_staff"]
+
+    def get_roles(self, user):
+        return [*user.roles, "admin"] if user.is_staff else list(user.roles)

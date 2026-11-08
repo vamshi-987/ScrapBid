@@ -1,6 +1,12 @@
+from urllib.parse import urlencode
+
 from django.conf import settings
 from django.contrib.auth import login, logout
+from django.http import HttpResponseForbidden
+from django.shortcuts import redirect
 from django.utils.decorators import method_decorator
+from django.utils.http import url_has_allowed_host_and_scheme
+from django.views import View
 from django.views.decorators.csrf import csrf_protect, ensure_csrf_cookie
 from rest_framework import status
 from rest_framework.exceptions import Throttled
@@ -96,3 +102,20 @@ class MeView(APIView):
 
     def get(self, request):
         return Response(MeSerializer(request.user).data)
+
+
+class AdminLoginRedirectView(View):
+    """Replaces Django admin's password login with the web app's OTP login."""
+
+    def get(self, request):
+        target = request.GET.get("next", "/admin/")
+        if not url_has_allowed_host_and_scheme(target, allowed_hosts=None) or not target.startswith(
+            "/"
+        ):
+            target = "/admin/"
+        if request.user.is_authenticated:
+            if request.user.is_staff:
+                return redirect(target)
+            # Logged in but not an admin: logging in again wouldn't help.
+            return HttpResponseForbidden("This account doesn't have admin access.")
+        return redirect(f"/login?{urlencode({'next': target})}")

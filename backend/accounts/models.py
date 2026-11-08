@@ -1,6 +1,18 @@
 from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, PermissionsMixin
+from django.contrib.postgres.fields import ArrayField
 from django.db import models
 from django.utils import timezone
+
+
+class Role(models.TextChoices):
+    """Marketplace roles. Admin access is Django's is_staff flag, not a role here."""
+
+    SELLER = "seller", "Seller"
+    DEALER = "dealer", "Dealer"
+
+
+def default_roles():
+    return [Role.SELLER]
 
 
 class UserManager(BaseUserManager):
@@ -25,6 +37,9 @@ class UserManager(BaseUserManager):
 
 class User(AbstractBaseUser, PermissionsMixin):
     phone = models.CharField(max_length=16, unique=True)
+    # A set of Role values: unique and sorted on save. One account holds every role.
+    roles = ArrayField(models.CharField(max_length=16, choices=Role.choices), default=default_roles)
+    # False means suspended: the user can't log in and existing sessions stop working.
     is_active = models.BooleanField(default=True)
     is_staff = models.BooleanField(default=False)
     date_joined = models.DateTimeField(default=timezone.now)
@@ -36,6 +51,24 @@ class User(AbstractBaseUser, PermissionsMixin):
     def __str__(self):
         # Never expose the phone number in admin lists or logs.
         return f"User {self.pk}"
+
+    def save(self, *args, **kwargs):
+        unknown = set(self.roles) - set(Role.values)
+        if unknown:
+            raise ValueError(f"Unknown roles: {sorted(unknown)}")
+        self.roles = sorted(set(self.roles))
+        super().save(*args, **kwargs)
+
+    def has_role(self, role):
+        return role in self.roles
+
+    def add_role(self, role):
+        """Add a role and save. Adding a role the user already has changes nothing."""
+        if role not in Role.values:
+            raise ValueError(f"Unknown role: {role}")
+        if role not in self.roles:
+            self.roles = [*self.roles, role]
+            self.save(update_fields=["roles"])
 
 
 class OtpChallenge(models.Model):
