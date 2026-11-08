@@ -46,11 +46,18 @@ The app and the API share one origin, so the browser uses session cookies with C
 
 ## Demo accounts
 
-Demo accounts come with the seed data command, which isn't in this version yet. Once it is, the phone numbers will be listed here. Locally they log in with the fixed OTP from `DEV_FIXED_OTP` (`123456` by default).
+Locally you can log in with any valid Indian mobile number, for example `98765 43210`. The code is `DEV_FIXED_OTP` (`123456` by default). Codes are also printed to the backend log with the number masked. A new number gets a new account on first login.
+
+Ready-made demo accounts come with the seed data command, which isn't in this version yet. Once it is, their phone numbers will be listed here.
 
 ## Key decisions
 
 - **Same code locally and in production.** Only the adapters differ, chosen by env vars: storage (MinIO or S3), OTP delivery (console or SMS), and the database host. No feature is skipped locally.
+- **Phone OTP login with a Django session.** One account per phone number.
+  - Codes are 6 digits and expire after 5 minutes. A code locks after 5 wrong attempts, and a new request replaces any earlier code.
+  - Requests are limited per phone and per IP, and the limits are counted in the database, so no Redis is needed.
+  - The login records store only keyed hashes of the phone, IP and code, and are deleted after a day.
+  - Responses are the same whether or not an account exists.
 - **Production refuses unsafe settings.** The backend won't start in production with debug on, the default secret key, the console OTP provider, or a fixed OTP.
 - **Money is stored as integer paise and weight as a decimal.** Floats are never used for either, and totals are computed on the server only.
 - **Times are stored in UTC and shown in IST.** Amounts are shown in Indian format, e.g. ₹1,23,456.

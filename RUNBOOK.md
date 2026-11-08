@@ -29,6 +29,18 @@ curl http://localhost/api/health
 
 Expected output: `{"status":"ok","checks":{"database":"ok","storage":"ok"}}`. The home page also shows this status.
 
+### Logging in locally
+
+1. Open http://localhost and choose **Log in**.
+2. Enter any valid Indian mobile number, for example `98765 43210`.
+3. Enter the code `123456` (the `DEV_FIXED_OTP` value). With `DEV_FIXED_OTP` empty, codes are random. Find them in the log:
+
+   ```bash
+   docker compose logs backend | grep "Login code"
+   ```
+
+   The log shows the number masked, for example `Login code for +91XXXXXX3210: 123456`.
+
 Editing files under `frontend/src` or `backend/` reloads automatically. Frontend dependencies live in a Docker volume, not in `frontend/node_modules` on your machine. They reinstall automatically when `package-lock.json` changes.
 
 ## Tests and lint
@@ -66,7 +78,11 @@ To see results: `gh run list` or the repository's Actions tab. If a job fails, i
 
 ## Scheduler
 
-The `scheduler` service runs Django management commands every `SCHEDULER_INTERVAL_SECONDS` (default 300). The job list is `JOBS` in `backend/scheduler.py`. A failing job is logged, and the other jobs and later runs still happen.
+The `scheduler` service runs Django management commands every `SCHEDULER_INTERVAL_SECONDS` (default 300). The job list is `JOBS` in `backend/scheduler.py`.
+
+| Job | What it does |
+|---|---|
+| `purge_otp_challenges` | Deletes login code records older than one day | A failing job is logged, and the other jobs and later runs still happen.
 
 ```bash
 docker compose logs -f scheduler        # one "Scheduler run finished" line per run
@@ -125,7 +141,14 @@ All variables are in `.env.example` with safe local defaults. Never commit `.env
 | `MINIO_CONSOLE_PORT` | `9001` | Host port for the MinIO console |
 | `SCHEDULER_INTERVAL_SECONDS` | `300` | Seconds between scheduler runs. Must be positive. |
 | `OTP_PROVIDER` | `console` | `console` prints codes to the logs. Not allowed in production. |
-| `DEV_FIXED_OTP` | `123456` | Local only. Must be empty in production. |
+| `DEV_FIXED_OTP` | `123456` | Local only, 6 digits, used only with the `console` provider. Must be empty in production. |
+| `OTP_EXPIRY_SECONDS` | `300` | Login code lifetime |
+| `OTP_MAX_ATTEMPTS` | `5` | Wrong attempts before a code stops working |
+| `OTP_MAX_REQUESTS_PER_PHONE_10_MIN` | `3` | Code requests per phone in 10 minutes |
+| `OTP_MAX_REQUESTS_PER_PHONE_DAY` | `10` | Code requests per phone in 24 hours |
+| `OTP_MAX_REQUESTS_PER_IP_HOUR` | `20` | Code requests per IP address in an hour |
+
+All the `OTP_*` limits must be whole numbers greater than 0, or the backend won't start.
 
 ### Production safety check
 
@@ -146,6 +169,12 @@ The error lists every problem it found.
 **The web app shows "Can't reach the server" or Caddy returns 502.** The backend or frontend is still starting. Wait a few seconds and reload. If it persists, check `docker compose ps` and `docker compose logs backend frontend`.
 
 **`Permission denied` inside containers on Linux.** The `backend`, `scheduler` and `frontend` containers run as uid 1000 and write to the mounted source, for example caches, migrations, `package-lock.json` and `dist`. On Linux, the checkout must be writable by uid 1000, which is usually the first user account. Check with `id -u`. If yours is different, run `sudo chown -R 1000:1000 .` in the checkout, or clone as a uid-1000 user. macOS and Windows with Docker Desktop aren't affected.
+
+**"Too many codes requested" while testing.** The limits work locally too. To reset them, delete the stored login records:
+
+```bash
+docker compose exec backend python manage.py shell -c "from accounts.models import OtpChallenge; OtpChallenge.objects.all().delete()"
+```
 
 **Frontend errors about missing packages.** Reinstall the dependencies with `docker compose run --rm frontend npm ci`, or remove the volume with `docker compose down` and `docker volume rm scrapbid_frontend-node-modules`, then start again.
 
