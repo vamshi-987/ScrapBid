@@ -3,6 +3,7 @@ import { Link } from "react-router";
 
 import type { Me } from "../api/auth";
 import { apiFetch } from "../api/client";
+import type { View } from "../session/views";
 import { strings } from "../strings";
 
 type Health = {
@@ -12,9 +13,9 @@ type Health = {
 
 type State = { kind: "loading" } | { kind: "unreachable" } | { kind: "loaded"; health: Health };
 
-type Props = { me: Me | null | undefined; onLogout: () => void };
+type Props = { me: Me | null | undefined; view: View | null };
 
-export function HomePage({ me, onLogout }: Props) {
+export function HomePage({ me, view }: Props) {
   const [state, setState] = useState<State>({ kind: "loading" });
 
   useEffect(() => {
@@ -40,9 +41,12 @@ export function HomePage({ me, onLogout }: Props) {
           <p>
             {strings.session.loggedInAs} <strong>{me.phone}</strong>
           </p>
-          <button type="button" onClick={onLogout}>
-            {strings.session.logOut}
-          </button>
+          {view && (
+            <>
+              <h2>{strings.shell.views[view]}</h2>
+              <p>{strings.shell.emptyView[view]}</p>
+            </>
+          )}
         </section>
       )}
       {me === null && (

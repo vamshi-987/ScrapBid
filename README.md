@@ -46,9 +46,16 @@ The app and the API share one origin, so the browser uses session cookies with C
 
 ## Demo accounts
 
-Locally you can log in with any valid Indian mobile number, for example `98765 43210`. The code is `DEV_FIXED_OTP` (`123456` by default). Codes are also printed to the backend log with the number masked. A new number gets a new account on first login.
+Run `docker compose exec backend python manage.py seed_demo`, then log in at http://localhost with one of these numbers. The code is `DEV_FIXED_OTP` (`123456` by default).
 
-Ready-made demo accounts come with the seed data command, which isn't in this version yet. Once it is, their phone numbers will be listed here.
+| Phone | Account |
+|---|---|
+| `9000000001` | Admin. Also opens Django admin at http://localhost/admin. |
+| `9000000002` | Seller 1 |
+| `9000000003` | Seller 2 |
+| `9000000004` | Dealer who also sells. Switches between the Selling and Buying views. |
+
+More demo data, such as dealers, categories and listings, is added as features land. Any other valid Indian mobile number also works and gets a new seller account on first login.
 
 ## Key decisions
 
@@ -58,6 +65,9 @@ Ready-made demo accounts come with the seed data command, which isn't in this ve
   - Requests are limited per phone and per IP, and the limits are counted in the database, so no Redis is needed.
   - The login records store only keyed hashes of the phone, IP and code, and are deleted after a day.
   - Responses are the same whether or not an account exists.
+- **One account, several roles.** A user's roles (`seller`, `dealer`) are stored as a set, so a dealer who also sells uses the same account and switches views. Admin access is Django's staff flag.
+- **Admins log in by phone OTP too.** Django admin's password login redirects to the web app's login, and the session then opens the admin.
+- **Suspending an account** (Django admin, "Suspend selected accounts") blocks login and ends existing sessions straight away.
 - **Production refuses unsafe settings.** The backend won't start in production with debug on, the default secret key, the console OTP provider, or a fixed OTP.
 - **Money is stored as integer paise and weight as a decimal.** Floats are never used for either, and totals are computed on the server only.
 - **Times are stored in UTC and shown in IST.** Amounts are shown in Indian format, e.g. ₹1,23,456.

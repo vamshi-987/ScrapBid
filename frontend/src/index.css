@@ -129,6 +129,54 @@ button.link {
   font-weight: 500;
 }
 
+.shell {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  max-width: 40rem;
+  margin: 0 auto;
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.brand {
+  font-weight: 700;
+  color: var(--text);
+  text-decoration: none;
+}
+
+.shell-actions {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.shell-actions a {
+  color: var(--ok);
+}
+
+.view-switch {
+  display: flex;
+  max-width: 40rem;
+  margin: 0.75rem auto 0;
+  padding: 0 1rem;
+  gap: 0.5rem;
+}
+
+.view-switch button {
+  flex: 1;
+  background: var(--surface);
+  color: var(--text);
+  border: 1px solid var(--border);
+}
+
+.view-switch button.active {
+  background: var(--ok);
+  color: #ffffff;
+  border-color: var(--ok);
+}
+
 .form-links {
   display: flex;
   justify-content: space-between;

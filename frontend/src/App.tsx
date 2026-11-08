@@ -2,38 +2,53 @@ import { useEffect, useState } from "react";
 import { Route, Routes } from "react-router";
 
 import { ensureCsrfCookie, fetchMe, logout, type Me } from "./api/auth";
+import { AppShell } from "./components/AppShell";
 import { HomePage } from "./pages/HomePage";
 import { LoginPage } from "./pages/LoginPage";
+import { chooseView, rememberView, rememberedView, type View } from "./session/views";
 import { strings } from "./strings";
 
 export function App() {
   // undefined while loading, null when nobody is logged in.
   const [me, setMe] = useState<Me | null | undefined>(undefined);
+  const [view, setView] = useState<View | null>(null);
+
+  function handleLoggedIn(user: Me | null) {
+    setMe(user);
+    setView(user ? chooseView(user.roles, rememberedView()) : null);
+  }
 
   useEffect(() => {
     ensureCsrfCookie()
       .then(fetchMe)
-      .then(setMe)
-      .catch(() => setMe(null));
+      .then(handleLoggedIn)
+      .catch(() => handleLoggedIn(null));
   }, []);
+
+  function handleViewChange(next: View) {
+    rememberView(next);
+    setView(next);
+  }
 
   async function handleLogout() {
     await logout();
-    setMe(null);
+    handleLoggedIn(null);
   }
 
   return (
-    <Routes>
-      <Route path="/" element={<HomePage me={me} onLogout={handleLogout} />} />
-      <Route path="/login" element={<LoginPage onLoggedIn={setMe} />} />
-      <Route
-        path="*"
-        element={
-          <main className="page">
-            <h1>{strings.notFound}</h1>
-          </main>
-        }
-      />
-    </Routes>
+    <AppShell me={me} view={view} onViewChange={handleViewChange} onLogout={handleLogout}>
+      <Routes>
+        <Route path="/" element={<HomePage me={me} view={view} />} />
+        <Route path="/login" element={<LoginPage onLoggedIn={handleLoggedIn} />} />
+        <Route
+          path="*"
+          element={
+            <main className="page">
+              <h1>{strings.notFound}</h1>
+            </main>
+          }
+        />
+      </Routes>
+    </AppShell>
   );
 }
