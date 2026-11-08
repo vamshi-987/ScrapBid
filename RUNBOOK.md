@@ -56,6 +56,25 @@ To fix frontend formatting: `docker compose exec frontend npm run format`
 
 To add a frontend package, run npm inside the container so `package-lock.json` stays correct: `docker compose exec frontend npm install <package>@<exact-version>`.
 
+### CI
+
+GitHub Actions (`.github/workflows/ci.yml`) runs on every push and pull request:
+- **Backend job:** starts `db`, `minio` and `backend` with Docker Compose, then runs ruff and pytest.
+- **Frontend job:** runs lint, tests, type check and build in the `frontend` container.
+
+To see results: `gh run list` or the repository's Actions tab. If a job fails, its last step prints the service logs.
+
+## Scheduler
+
+The `scheduler` service runs Django management commands every `SCHEDULER_INTERVAL_SECONDS` (default 300). The job list is `JOBS` in `backend/scheduler.py`. A failing job is logged, and the other jobs and later runs still happen.
+
+```bash
+docker compose logs -f scheduler        # one "Scheduler run finished" line per run
+docker compose restart scheduler        # needed after changing job code
+```
+
+To run a job by hand: `docker compose exec backend python manage.py <command>`
+
 ## Migrations
 
 ```bash
@@ -71,6 +90,7 @@ A test fails if a model change has no migration. Never edit a migration that has
 docker compose logs -f backend
 docker compose logs -f frontend
 docker compose logs caddy
+docker compose logs -f scheduler
 docker compose logs minio minio-init
 ```
 
@@ -103,6 +123,7 @@ All variables are in `.env.example` with safe local defaults. Never commit `.env
 | `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY` | match the MinIO login | |
 | `MINIO_ROOT_USER`, `MINIO_ROOT_PASSWORD` | `scrapbid`, `scrapbid-secret` | Local only |
 | `MINIO_CONSOLE_PORT` | `9001` | Host port for the MinIO console |
+| `SCHEDULER_INTERVAL_SECONDS` | `300` | Seconds between scheduler runs. Must be positive. |
 | `OTP_PROVIDER` | `console` | `console` prints codes to the logs. Not allowed in production. |
 | `DEV_FIXED_OTP` | `123456` | Local only. Must be empty in production. |
 
