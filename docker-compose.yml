@@ -48,6 +48,24 @@ services:
       minio:
         condition: service_started
 
+  frontend:
+    build: ./frontend
+    volumes:
+      - ./frontend:/app
+      # Dependencies stay in a Docker volume, never on the host.
+      - frontend-node-modules:/app/node_modules
+
+  caddy:
+    image: caddy:2.11.9-alpine@sha256:0bbb055bda6793c999bde78b1b5ce3e89f829fb031af2cf50056ea1246559fee
+    volumes:
+      - ./deploy/Caddyfile.local:/etc/caddy/Caddyfile:ro
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+      - frontend
+
 volumes:
   db-data:
   minio-data:
+  frontend-node-modules:

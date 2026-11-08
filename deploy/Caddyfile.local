@@ -1,0 +1,13 @@
+# Local development: everything on http://localhost.
+{
+	auto_https off
+	admin off
+}
+
+:80 {
+	@django path /api /api/* /admin /admin/* /static/*
+	reverse_proxy @django backend:8000
+
+	# Vite dev server, including hot-reload websockets.
+	reverse_proxy frontend:5173
+}
