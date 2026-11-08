@@ -11,7 +11,7 @@ import time
 import django
 
 # Management command names, run in order on every pass.
-JOBS: list[str] = []
+JOBS: list[str] = ["purge_otp_challenges"]
 
 logger = logging.getLogger("scheduler")
 
