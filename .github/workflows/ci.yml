@@ -1,0 +1,52 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+# Both jobs use the same Docker Compose services and pinned images as local
+# development, so tests run against the same PostGIS, MinIO and GDAL versions.
+jobs:
+  backend:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Start database, storage and backend
+        run: |
+          cp .env.example .env
+          docker compose up --build -d --wait db minio backend
+          docker compose up minio-init --exit-code-from minio-init
+
+      - name: Lint
+        run: |
+          docker compose exec -T backend ruff check .
+          docker compose exec -T backend ruff format --check .
+
+      - name: Test
+        run: docker compose exec -T backend pytest
+
+      - name: Show service logs on failure
+        if: failure()
+        run: docker compose logs --no-color
+
+  frontend:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Lint, test, type check and build
+        run: |
+          cp .env.example .env
+          docker compose build frontend
+          docker compose run --rm --no-deps frontend sh -c \
+            "npm run lint && npm test && npx tsc --noEmit && npm run build"
