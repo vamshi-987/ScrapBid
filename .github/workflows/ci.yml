@@ -21,12 +21,13 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       # The containers run as uid 1000 and write to the mounted source (caches, migrations).
-      - name: Make the checkout writable by the container user
-        run: sudo chown -R 1000:1000 .
+      - name: Create .env and make the checkout writable by the container user
+        run: |
+          cp .env.example .env
+          sudo chown -R 1000:1000 .
 
       - name: Start database, storage and backend
         run: |
-          cp .env.example .env
           docker compose up --build -d --wait db minio backend
           docker compose up minio-init --exit-code-from minio-init
 
@@ -48,12 +49,13 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-      - name: Make the checkout writable by the container user
-        run: sudo chown -R 1000:1000 .
+      - name: Create .env and make the checkout writable by the container user
+        run: |
+          cp .env.example .env
+          sudo chown -R 1000:1000 .
 
       - name: Lint, test, type check and build
         run: |
-          cp .env.example .env
           docker compose build frontend
           docker compose run --rm --no-deps frontend sh -c \
             "npm run lint && npm test && npx tsc --noEmit && npm run build"
