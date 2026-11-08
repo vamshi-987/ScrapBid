@@ -24,6 +24,17 @@ def env_list(name, default=""):
     return [item.strip() for item in env(name, default).split(",") if item.strip()]
 
 
+def env_positive_int(name, default):
+    raw = env(name) or str(default)
+    try:
+        value = int(raw)
+    except ValueError:
+        raise ImproperlyConfigured(f"{name} must be a whole number") from None
+    if value <= 0:
+        raise ImproperlyConfigured(f"{name} must be greater than 0")
+    return value
+
+
 # --- Environment -----------------------------------------------------------
 
 DJANGO_ENV = env("DJANGO_ENV", "local")
@@ -36,6 +47,11 @@ ALLOWED_HOSTS = env_list("DJANGO_ALLOWED_HOSTS", "localhost,127.0.0.1")
 
 OTP_PROVIDER = env("OTP_PROVIDER", "console")
 DEV_FIXED_OTP = env("DEV_FIXED_OTP")
+OTP_EXPIRY_SECONDS = env_positive_int("OTP_EXPIRY_SECONDS", 300)
+OTP_MAX_ATTEMPTS = env_positive_int("OTP_MAX_ATTEMPTS", 5)
+OTP_MAX_REQUESTS_PER_PHONE_10_MIN = env_positive_int("OTP_MAX_REQUESTS_PER_PHONE_10_MIN", 3)
+OTP_MAX_REQUESTS_PER_PHONE_DAY = env_positive_int("OTP_MAX_REQUESTS_PER_PHONE_DAY", 10)
+OTP_MAX_REQUESTS_PER_IP_HOUR = env_positive_int("OTP_MAX_REQUESTS_PER_IP_HOUR", 20)
 
 if DJANGO_ENV == "production":
     _problems = production_problems(
