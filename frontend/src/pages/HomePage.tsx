@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
+import { Link } from "react-router";
 
+import type { Me } from "../api/auth";
 import { apiFetch } from "../api/client";
 import { strings } from "../strings";
 
@@ -10,7 +12,9 @@ type Health = {
 
 type State = { kind: "loading" } | { kind: "unreachable" } | { kind: "loaded"; health: Health };
 
-export function HomePage() {
+type Props = { me: Me | null | undefined; onLogout: () => void };
+
+export function HomePage({ me, onLogout }: Props) {
   const [state, setState] = useState<State>({ kind: "loading" });
 
   useEffect(() => {
@@ -30,6 +34,22 @@ export function HomePage() {
     <main className="page">
       <h1>{strings.appName}</h1>
       <p>{strings.tagline}</p>
+
+      {me && (
+        <section className="card session">
+          <p>
+            {strings.session.loggedInAs} <strong>{me.phone}</strong>
+          </p>
+          <button type="button" onClick={onLogout}>
+            {strings.session.logOut}
+          </button>
+        </section>
+      )}
+      {me === null && (
+        <Link className="button" to="/login">
+          {strings.session.logIn}
+        </Link>
+      )}
 
       <section className="card" aria-live="polite">
         <h2>{t.title}</h2>

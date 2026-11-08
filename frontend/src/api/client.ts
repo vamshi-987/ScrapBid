@@ -20,10 +20,19 @@ export function apiFetch(path: string, init: RequestInit = {}): Promise<Response
   const headers = new Headers(init.headers);
   headers.set("Accept", "application/json");
   if (UNSAFE_METHODS.has(method)) {
-    const token = csrfTokenFrom(document.cookie);
+    const token = csrfTokenFrom(globalThis.document?.cookie ?? "");
     if (token) {
       headers.set("X-CSRFToken", token);
     }
   }
   return fetch(path, { ...init, method, headers, credentials: "same-origin" });
+}
+
+/** Sends a JSON body with POST. */
+export function postJson(path: string, body?: unknown): Promise<Response> {
+  return apiFetch(path, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: body === undefined ? undefined : JSON.stringify(body),
+  });
 }
