@@ -1,3 +1,13 @@
 CLAUDE.md
 PLAN.md
 PROGRESS.md
+
+# Local secrets
+.env
+
+# Python
+__pycache__/
+*.pyc
+.pytest_cache/
+.ruff_cache/
+backend/staticfiles/

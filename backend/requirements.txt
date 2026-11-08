@@ -1,0 +1,25 @@
+# Direct dependencies
+Django==5.2.19
+djangorestframework==3.18.3
+django-storages[s3]==1.14.6
+boto3==1.43.126
+psycopg[binary]==3.3.8
+pytest==9.2.0
+pytest-django==4.14.0
+ruff==0.17.4
+
+# Pinned sub-dependencies
+asgiref==3.13.0
+botocore==1.43.126
+iniconfig==2.3.1
+jmespath==1.1.0
+packaging==26.3
+pluggy==1.7.0
+psycopg-binary==3.3.8
+Pygments==2.21.0
+python-dateutil==2.9.0.post0
+s3transfer==0.19.3
+six==1.17.0
+sqlparse==0.6.1
+typing_extensions==4.16.0
+urllib3==2.8.0
