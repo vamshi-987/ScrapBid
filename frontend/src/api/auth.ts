@@ -1,6 +1,6 @@
 import { apiFetch, postJson } from "./client";
 
-export type Me = { id: number; phone: string; is_staff: boolean };
+export type Me = { id: number; phone: string; roles: string[]; is_staff: boolean };
 
 export type RequestOtpResult =
   | { ok: true; expiresIn: number }

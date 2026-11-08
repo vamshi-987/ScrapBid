@@ -18,6 +18,15 @@ export const en = {
     logIn: "Log in",
     logOut: "Log out",
   },
+  shell: {
+    admin: "Admin",
+    viewSwitchLabel: "Choose a view",
+    views: { selling: "Selling", buying: "Buying" },
+    emptyView: {
+      selling: "Your scrap listings will appear here.",
+      buying: "Listings near you will appear here.",
+    },
+  },
   login: {
     title: "Log in",
     phoneLabel: "Mobile number",

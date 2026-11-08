@@ -52,7 +52,7 @@ describe("requestOtp", () => {
 });
 
 describe("verifyOtp", () => {
-  const me = { id: 1, phone: "+919876543210", is_staff: false };
+  const me = { id: 1, phone: "+919876543210", roles: ["seller"], is_staff: false };
 
   it.each([
     [json(200, me), { ok: true, me }],

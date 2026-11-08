@@ -1,7 +1,8 @@
 import { useState, type FormEvent } from "react";
-import { useNavigate } from "react-router";
+import { useNavigate, useSearchParams } from "react-router";
 
 import { requestOtp, verifyOtp, type Me } from "../api/auth";
+import { isServerPath, safeNextPath } from "../session/navigation";
 import { strings } from "../strings";
 
 type ErrorKey = keyof typeof strings.login.errors;
@@ -9,6 +10,8 @@ type ErrorKey = keyof typeof strings.login.errors;
 export function LoginPage({ onLoggedIn }: { onLoggedIn: (me: Me) => void }) {
   const t = strings.login;
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const next = safeNextPath(searchParams.get("next")) ?? "/";
   const [step, setStep] = useState<"phone" | "code">("phone");
   const [phone, setPhone] = useState("");
   const [code, setCode] = useState("");
@@ -37,7 +40,12 @@ export function LoginPage({ onLoggedIn }: { onLoggedIn: (me: Me) => void }) {
     setBusy(false);
     if (result.ok) {
       onLoggedIn(result.me);
-      navigate("/");
+      if (isServerPath(next)) {
+        // Django admin is a separate page, not part of the web app.
+        window.location.assign(next);
+      } else {
+        navigate(next);
+      }
     } else {
       setError(result.reason);
     }
