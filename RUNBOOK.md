@@ -12,17 +12,24 @@ docker compose up --build -d
 docker compose exec backend python manage.py migrate
 ```
 
-Check that it's working. The dev server takes a few seconds to start, so retry if the first attempt can't connect.
+The first start takes a minute or two while images build and frontend dependencies install. Then:
+
+| What | URL |
+|---|---|
+| Web app | http://localhost |
+| API health check | http://localhost/api/health |
+| Django admin | http://localhost/admin |
+| MinIO console | http://localhost:9001 (log in with `MINIO_ROOT_USER` / `MINIO_ROOT_PASSWORD` from `.env`) |
+
+Check that it's working:
 
 ```bash
-docker compose exec backend python -c "import urllib.request; print(urllib.request.urlopen('http://127.0.0.1:8000/api/health').read().decode())"
+curl http://localhost/api/health
 ```
 
-Expected output: `{"status":"ok","checks":{"database":"ok","storage":"ok"}}`
+Expected output: `{"status":"ok","checks":{"database":"ok","storage":"ok"}}`. The home page also shows this status.
 
-The MinIO console is at http://localhost:9001. Log in with `MINIO_ROOT_USER` and `MINIO_ROOT_PASSWORD` from `.env`.
-
-> The backend isn't published on a host port yet. A reverse proxy serving everything on `http://localhost` comes in the next change. Until then, reach the API from inside the `backend` container as shown above.
+Editing files under `frontend/src` or `backend/` reloads automatically. Frontend dependencies live in a Docker volume, not in `frontend/node_modules` on your machine. They reinstall automatically when `package-lock.json` changes.
 
 ## Tests and lint
 
@@ -34,7 +41,20 @@ docker compose exec backend ruff check .
 docker compose exec backend ruff format --check .
 ```
 
-To fix formatting: `docker compose exec backend ruff format .`
+To fix backend formatting: `docker compose exec backend ruff format .`
+
+Frontend:
+
+```bash
+docker compose exec frontend npm run lint      # eslint + prettier check
+docker compose exec frontend npm test          # Vitest
+docker compose exec frontend npx tsc --noEmit  # type check
+docker compose exec frontend npm run build     # production build
+```
+
+To fix frontend formatting: `docker compose exec frontend npm run format`
+
+To add a frontend package, run npm inside the container so `package-lock.json` stays correct: `docker compose exec frontend npm install <package>@<exact-version>`.
 
 ## Migrations
 
@@ -49,6 +69,8 @@ A test fails if a model change has no migration. Never edit a migration that has
 
 ```bash
 docker compose logs -f backend
+docker compose logs -f frontend
+docker compose logs caddy
 docker compose logs minio minio-init
 ```
 
@@ -96,7 +118,13 @@ The error lists every problem it found.
 
 ## Troubleshooting
 
-**`bind: address already in use` on start-up.** Another program is using a host port. For the MinIO console, set `MINIO_CONSOLE_PORT` in `.env` to a free port, such as `9011`, then run `docker compose up -d` again. To find what's using a port: `lsof -nP -iTCP:9001 -sTCP:LISTEN`.
+**`bind: address already in use` on start-up.** Another program is using a host port. To find out which: `lsof -nP -iTCP:80 -sTCP:LISTEN` (or `:9001`).
+- **Port 80:** stop the other program. The app is meant to run on `http://localhost`.
+- **Port 9001:** set `MINIO_CONSOLE_PORT` in `.env` to a free port, such as `9011`, then run `docker compose up -d` again.
+
+**The web app shows "Can't reach the server" or Caddy returns 502.** The backend or frontend is still starting. Wait a few seconds and reload. If it persists, check `docker compose ps` and `docker compose logs backend frontend`.
+
+**Frontend errors about missing packages.** Reinstall the dependencies with `docker compose run --rm frontend npm ci`, or remove the volume with `docker compose down` and `docker volume rm scrapbid_frontend-node-modules`, then start again.
 
 **Health check shows `"storage": "error"`.**
 1. Check that `minio` is running and that `minio-init` exited with code 0: `docker compose ps -a`.
