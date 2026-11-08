@@ -145,6 +145,8 @@ The error lists every problem it found.
 
 **The web app shows "Can't reach the server" or Caddy returns 502.** The backend or frontend is still starting. Wait a few seconds and reload. If it persists, check `docker compose ps` and `docker compose logs backend frontend`.
 
+**`Permission denied` inside containers on Linux.** The `backend`, `scheduler` and `frontend` containers run as uid 1000 and write to the mounted source, for example caches, migrations, `package-lock.json` and `dist`. On Linux, the checkout must be writable by uid 1000, which is usually the first user account. Check with `id -u`. If yours is different, run `sudo chown -R 1000:1000 .` in the checkout, or clone as a uid-1000 user. macOS and Windows with Docker Desktop aren't affected.
+
 **Frontend errors about missing packages.** Reinstall the dependencies with `docker compose run --rm frontend npm ci`, or remove the volume with `docker compose down` and `docker volume rm scrapbid_frontend-node-modules`, then start again.
 
 **Health check shows `"storage": "error"`.**

@@ -20,6 +20,10 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
+      # The containers run as uid 1000 and write to the mounted source (caches, migrations).
+      - name: Make the checkout writable by the container user
+        run: sudo chown -R 1000:1000 .
+
       - name: Start database, storage and backend
         run: |
           cp .env.example .env
@@ -43,6 +47,9 @@ jobs:
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Make the checkout writable by the container user
+        run: sudo chown -R 1000:1000 .
 
       - name: Lint, test, type check and build
         run: |
