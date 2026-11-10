@@ -1,3 +1,4 @@
+import io
 import logging
 import urllib.error
 import urllib.request
@@ -9,6 +10,7 @@ from django.core.files.storage import default_storage
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.core.management import call_command
 from django.utils import timezone
+from PIL import Image
 from rest_framework.test import APIClient
 
 from accounts.models import Role, User
@@ -20,7 +22,15 @@ PROFILE_URL = "/api/dealer/profile"
 DOCS_URL = "/api/dealer/documents"
 AADHAAR = "2345 6789 0123"
 PDF = b"%PDF-1.4\n%test\n%%EOF\n"
-PNG = b"\x89PNG\r\n\x1a\n" + b"\x00" * 32
+
+
+def real_image(image_format):
+    buffer = io.BytesIO()
+    Image.new("RGB", (40, 30), "orange").save(buffer, format=image_format)
+    return buffer.getvalue()
+
+
+PNG = real_image("PNG")
 
 
 @pytest.fixture
@@ -198,8 +208,8 @@ def test_reviewed_application_cannot_be_edited(client, status):
     [
         (PDF, "licence.pdf", "application/pdf"),
         (PNG, "id.png", "image/png"),
-        (b"\xff\xd8\xff\xe0" + b"\x00" * 32, "cert.jpg", "image/jpeg"),
-        (b"RIFF\x00\x00\x00\x00WEBPVP8 " + b"\x00" * 16, "cert.webp", "image/webp"),
+        (real_image("JPEG"), "cert.jpg", "image/jpeg"),
+        (real_image("WEBP"), "cert.webp", "image/webp"),
     ],
 )
 def test_allowed_document_types_are_stored(client, content, name, content_type):
@@ -314,3 +324,28 @@ def test_seed_demo_adds_a_pending_dealer_with_documents_idempotently():
     dual = User.objects.get(phone="+919000000004")
     assert dual.dealer_profile.locality == "Ameerpet"
     assert dual.dealer_profile.status == DealerStatus.APPROVED
+
+
+def test_document_photos_are_stored_without_exif_or_gps(client):
+    apply(client)
+    exif = Image.Exif()
+    exif[0x010F] = "PhoneMaker"  # camera make
+    exif[0x8825] = {2: (17.0, 26.0, 15.0)}  # GPS latitude
+    buffer = io.BytesIO()
+    Image.new("RGB", (40, 30), "orange").save(buffer, format="JPEG", exif=exif)
+    assert b"PhoneMaker" in buffer.getvalue()
+
+    response = upload(client, doc_type="id_proof", content=buffer.getvalue(), name="id.jpg")
+
+    assert response.status_code == 201
+    stored = default_storage.open(DealerDocument.objects.get().file.name).read()
+    assert b"PhoneMaker" not in stored and b"Exif" not in stored
+    assert dict(Image.open(io.BytesIO(stored)).getexif()) == {}
+
+
+def test_image_with_a_real_header_but_broken_body_is_rejected(client):
+    apply(client)
+
+    response = upload(client, content=b"\x89PNG\r\n\x1a\n" + b"\x00" * 32, name="id.png")
+
+    assert response.status_code == 400

@@ -55,6 +55,9 @@ OTP_MAX_REQUESTS_PER_IP_HOUR = env_positive_int("OTP_MAX_REQUESTS_PER_IP_HOUR", 
 
 DEALER_DOCUMENT_MAX_BYTES = env_positive_int("DEALER_DOCUMENT_MAX_BYTES", 10 * 1024 * 1024)
 
+LISTING_PHOTO_MAX_BYTES = env_positive_int("LISTING_PHOTO_MAX_BYTES", 10 * 1024 * 1024)
+LISTING_MAX_PHOTOS = env_positive_int("LISTING_MAX_PHOTOS", 6)
+
 if DJANGO_ENV == "production":
     _problems = production_problems(
         debug=DEBUG,
@@ -133,6 +136,10 @@ DATABASES = {
 # --- File storage (S3 API: MinIO locally, AWS S3 in production) -----------
 
 S3_ENDPOINT_URL = env("S3_ENDPOINT_URL") or None
+# Address the browser uses for presigned links (Caddy locally). Falls back to the
+# storage endpoint; both empty (production) means AWS S3.
+S3_PUBLIC_ENDPOINT_URL = env("S3_PUBLIC_ENDPOINT_URL") or S3_ENDPOINT_URL
+PRESIGNED_URL_TTL_SECONDS = env_positive_int("PRESIGNED_URL_TTL_SECONDS", 600)
 
 STORAGES = {
     "default": {
