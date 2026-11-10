@@ -252,9 +252,12 @@ def test_two_simultaneous_changes_cannot_both_succeed(seller):
         finally:
             connection.close()
 
+    # The same move twice at once (the double-accept race). Whichever runs second
+    # must see the first one's result and be refused. Two *different* moves aren't
+    # a fair check: OPEN → OFFER_ACCEPTED then OFFER_ACCEPTED → CANCELLED is valid.
     threads = [
         threading.Thread(target=attempt, args=(S.OFFER_ACCEPTED, "")),
-        threading.Thread(target=attempt, args=(S.CANCELLED, "Changed my mind")),
+        threading.Thread(target=attempt, args=(S.OFFER_ACCEPTED, "")),
     ]
     for thread in threads:
         thread.start()
@@ -262,9 +265,9 @@ def test_two_simultaneous_changes_cannot_both_succeed(seller):
         thread.join()
 
     assert sorted(outcome for outcome, _ in results) == ["ok", "refused"]
+    assert ("refused", "not_allowed") in results
     listing.refresh_from_db()
-    winner = next(target for outcome, target in results if outcome == "ok")
-    assert listing.status == winner
+    assert listing.status == S.OFFER_ACCEPTED
     assert AuditLog.objects.filter(entity_id=listing.pk).count() == 1
 
 
