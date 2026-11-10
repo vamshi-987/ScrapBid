@@ -88,6 +88,20 @@ The seed also adds scrap categories: paper, cardboard, iron, copper, aluminium, 
   - Only approved dealers pass the dealer check that every marketplace endpoint uses.
   - Admins open documents through an admin-only page that streams the file from private storage. No document link is ever created.
   - E-waste authorisation is a flag an admin can set only after an authorisation document has been uploaded.
+- **Listing status follows one state machine, in one place** (`backend/listings/transitions.py`):
+
+  ```
+  DRAFT → OPEN → OFFER_ACCEPTED → PICKUP_SCHEDULED → PICKED_UP → COMPLETED
+  Before PICKED_UP, a listing can be CANCELLED (with a reason).
+  If the dealer cancels after acceptance, it goes back to OPEN (with a reason).
+  PICKED_UP → DISPUTED → COMPLETED or CANCELLED (admin only)
+  OPEN → EXPIRED (scheduled job only)
+  ```
+
+  - Every change locks the listing row, so two changes can't both succeed.
+  - Every change writes one row to an append-only audit log in the same transaction (who, when, from, to, reason). Audit rows can't be edited or deleted, and the admin shows them read-only.
+  - A test fails if any other code sets a listing's status directly.
+- **Weights are exact decimals** (`NUMERIC(10,3)` kg). Each category on a listing has either a weight (priced per kg) or a quantity (priced per item), never both.
 - **Production refuses unsafe settings.** The backend won't start in production with debug on, the default secret key, the console OTP provider, or a fixed OTP.
 - **Money is stored as integer paise and weight as a decimal.** Floats are never used for either, and totals are computed on the server only.
 - **Times are stored in UTC and shown in IST.** Amounts are shown in Indian format, e.g. ₹1,23,456.
