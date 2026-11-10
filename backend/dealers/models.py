@@ -41,6 +41,16 @@ class DealerProfile(models.Model):
     scale_certificate_expires_on = models.DateField()
     # Set by an admin after checking an uploaded authorisation document.
     ewaste_authorised = models.BooleanField(default=False)
+    # Latest review. The reason is shown to the dealer when rejected or suspended.
+    reviewed_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="+",
+    )
+    reviewed_at = models.DateTimeField(null=True, blank=True)
+    status_reason = models.CharField(max_length=300, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

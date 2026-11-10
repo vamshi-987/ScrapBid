@@ -69,6 +69,7 @@ class DealerProfileSerializer(serializers.ModelSerializer):
         model = DealerProfile
         fields = [
             "status",
+            "status_reason",
             "business_name",
             "locality",
             "pincode",

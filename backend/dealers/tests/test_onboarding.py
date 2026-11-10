@@ -308,7 +308,9 @@ def test_seed_demo_adds_a_pending_dealer_with_documents_idempotently():
     pending = DealerProfile.objects.get(user__phone="+919000000005")
     assert pending.status == DealerStatus.PENDING
     assert pending.documents.count() == 3
-    assert DealerProfile.objects.count() == 2
-    assert DealerDocument.objects.count() == 6
+    # 4 approved (incl. dual-role) + 1 pending; the e-waste dealer has one extra document.
+    assert DealerProfile.objects.count() == 5
+    assert DealerDocument.objects.count() == 5 * 3 + 1
     dual = User.objects.get(phone="+919000000004")
     assert dual.dealer_profile.locality == "Ameerpet"
+    assert dual.dealer_profile.status == DealerStatus.APPROVED
