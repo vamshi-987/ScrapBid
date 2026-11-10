@@ -113,3 +113,21 @@ class ListingItem(models.Model):
 
     def __str__(self):
         return f"{self.category} on listing {self.listing_id}"
+
+
+class ListingPhoto(models.Model):
+    """A cleaned photo (no EXIF) in private storage, shown only through presigned links."""
+
+    listing = models.ForeignKey(Listing, on_delete=models.CASCADE, related_name="photos")
+    file = models.FileField(max_length=200)
+    content_type = models.CharField(max_length=20)
+    width = models.PositiveIntegerField()
+    height = models.PositiveIntegerField()
+    size_bytes = models.PositiveIntegerField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["created_at", "id"]
+
+    def __str__(self):
+        return f"Photo {self.pk} on listing {self.listing_id}"

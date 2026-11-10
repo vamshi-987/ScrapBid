@@ -4,11 +4,13 @@ from uuid import uuid4
 
 from django.conf import settings
 from django.contrib.gis.geos import Point
+from django.core.files.base import ContentFile
 from django.core.files.storage import default_storage
 from django.db import transaction
 from django.utils import timezone
 
 from accounts.models import Role
+from config.images import InvalidImage, clean_image
 from dealers.models import (
     REQUIRED_DOCUMENT_TYPES,
     DealerDocument,
@@ -84,9 +86,18 @@ def store_document(profile, doc_type, uploaded_file):
     if detected is None:
         raise InvalidDocument("unsupported_type")
     content_type, extension = detected
+    content, size = uploaded_file, uploaded_file.size
+    if content_type != "application/pdf":
+        # Photos of documents often carry GPS and camera data: store pixels only.
+        try:
+            image = clean_image(uploaded_file)
+        except InvalidImage:
+            raise InvalidDocument("unsupported_type") from None
+        content, size = ContentFile(image.data), len(image.data)
+        content_type, extension = image.content_type, image.extension
 
     # Random key: the original file name may contain personal details.
-    key = default_storage.save(f"dealer-documents/{uuid4().hex}{extension}", uploaded_file)
+    key = default_storage.save(f"dealer-documents/{uuid4().hex}{extension}", content)
     with transaction.atomic():
         document = (
             DealerDocument.objects.select_for_update()
@@ -98,7 +109,7 @@ def store_document(profile, doc_type, uploaded_file):
             document = DealerDocument(dealer=profile, doc_type=doc_type)
         document.file.name = key
         document.content_type = content_type
-        document.size_bytes = uploaded_file.size
+        document.size_bytes = size
         document.save()
         if old_key:
             transaction.on_commit(lambda: default_storage.delete(old_key))

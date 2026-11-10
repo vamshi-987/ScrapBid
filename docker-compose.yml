@@ -73,11 +73,14 @@ services:
     image: caddy:2.11.9-alpine@sha256:0bbb055bda6793c999bde78b1b5ce3e89f829fb031af2cf50056ea1246559fee
     volumes:
       - ./deploy/Caddyfile.local:/etc/caddy/Caddyfile:ro
+    environment:
+      S3_BUCKET: ${S3_BUCKET}
     ports:
       - "80:80"
     depends_on:
       - backend
       - frontend
+      - minio
 
 volumes:
   db-data:
