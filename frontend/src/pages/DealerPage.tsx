@@ -3,6 +3,7 @@ import { useEffect, useState, type ChangeEvent, type FormEvent } from "react";
 import {
   applyAsDealer,
   fetchDealerProfile,
+  resubmitApplication,
   uploadDocument,
   type DealerProfile,
   type DocumentType,
@@ -246,6 +247,20 @@ function ApplicationStatus({
     setUploading(null);
   }
 
+  const [resubmitting, setResubmitting] = useState(false);
+
+  async function resubmit() {
+    setResubmitting(true);
+    setError(null);
+    const updated = await resubmitApplication();
+    if (updated) {
+      onChanged(updated);
+    } else {
+      setError("error");
+    }
+    setResubmitting(false);
+  }
+
   const uploaded = new Map(profile.documents.map((document) => [document.doc_type, document]));
 
   return (
@@ -255,6 +270,17 @@ function ApplicationStatus({
         <p>
           {t.status}: <strong>{t.statuses[profile.status]}</strong>
         </p>
+        <p>{t.statusHints[profile.status]}</p>
+        {profile.status_reason && (
+          <p className="status-error">
+            {t.reason}: {profile.status_reason}
+          </p>
+        )}
+        {profile.status === "rejected" && (
+          <button type="button" onClick={resubmit} disabled={resubmitting}>
+            {resubmitting ? t.resubmitting : t.resubmit}
+          </button>
+        )}
         <p>
           {profile.business_name}, {profile.locality} {profile.pincode}
         </p>

@@ -14,6 +14,7 @@ export type DealerDocument = {
 
 export type DealerProfile = {
   status: DealerStatus;
+  status_reason: string;
   business_name: string;
   locality: string;
   pincode: string;
@@ -71,6 +72,20 @@ export async function applyAsDealer(application: DealerApplication): Promise<App
     // Network failure: fall through to a generic error.
   }
   return { ok: false, reason: "error" };
+}
+
+/** Sends a rejected application back for review. Returns the updated profile, or null. */
+export async function resubmitApplication(): Promise<DealerProfile | null> {
+  try {
+    const response = await apiFetch("/api/dealer/profile", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: "{}",
+    });
+    return response.ok ? ((await response.json()) as DealerProfile) : null;
+  } catch {
+    return null;
+  }
 }
 
 export async function uploadDocument(docType: DocumentType, file: File): Promise<UploadResult> {
