@@ -184,6 +184,10 @@ All variables are in `.env.example` with safe local defaults. Never commit `.env
 | `S3_BUCKET` | `scrapbid-local` | Private bucket, created automatically locally |
 | `S3_REGION` | `us-east-1` | |
 | `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY` | match the MinIO login | |
+| `S3_PUBLIC_ENDPOINT_URL` | `http://localhost` | Address the browser uses to open presigned photo links. Locally, Caddy forwards `/<bucket>/...` to MinIO. Leave empty in production to use AWS S3. |
+| `PRESIGNED_URL_TTL_SECONDS` | `600` | How long a presigned photo link works |
+| `LISTING_PHOTO_MAX_BYTES` | `10485760` | Largest listing photo, in bytes (10 MB) |
+| `LISTING_MAX_PHOTOS` | `6` | Most photos per listing |
 | `MINIO_ROOT_USER`, `MINIO_ROOT_PASSWORD` | `scrapbid`, `scrapbid-secret` | Local only |
 | `MINIO_CONSOLE_PORT` | `9001` | Host port for the MinIO console |
 | `SCHEDULER_INTERVAL_SECONDS` | `300` | Seconds between scheduler runs. Must be positive. |
@@ -230,6 +234,11 @@ docker compose exec backend python manage.py shell -c "from accounts.models impo
 1. Check that `minio` is running and that `minio-init` exited with code 0: `docker compose ps -a`.
 2. Check that `minio-init` logged `Bucket created successfully` or that the bucket already exists: `docker compose logs minio-init`.
 3. If `S3_BUCKET` or the MinIO login in `.env` has changed, run `docker compose up -d` again.
+
+**Photos don't load (broken images), or links return 403.**
+- `S3_PUBLIC_ENDPOINT_URL` must match the address in the browser's address bar. That's `http://localhost` by default, because links are signed for that host.
+- If you open the app on another address (for example an HTTPS tunnel), set `S3_PUBLIC_ENDPOINT_URL` to that address and run `docker compose up -d`.
+- Links also stop working after `PRESIGNED_URL_TTL_SECONDS`. Reload the page to get fresh ones.
 
 **Health check shows `"database": "error"`.** Check `docker compose ps` for `db` being `healthy`, and `docker compose logs db`.
 

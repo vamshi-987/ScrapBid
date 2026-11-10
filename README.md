@@ -23,7 +23,7 @@ Everything runs in Docker Compose, locally and in production.
 | `minio-init` | Creates the private storage bucket, then exits |
 | `backend` | Django REST API and Django admin |
 | `frontend` | React web app (Vite dev server locally) |
-| `caddy` | Serves everything on one origin: `/api`, `/admin` and `/static` go to Django, everything else goes to the web app |
+| `caddy` | Serves everything on one origin. `/api`, `/admin` and `/static` go to Django. Locally, the storage bucket path goes to MinIO, for presigned photo links. Everything else goes to the web app. |
 | `scheduler` | Runs timed jobs (Django management commands) every few minutes. No Celery or Redis. |
 
 The app and the API share one origin, so the browser uses session cookies with CSRF protection, with no CORS setup needed.
@@ -101,6 +101,10 @@ The seed also adds scrap categories: paper, cardboard, iron, copper, aluminium, 
   - Every change locks the listing row, so two changes can't both succeed.
   - Every change writes one row to an append-only audit log in the same transaction (who, when, from, to, reason). Audit rows can't be edited or deleted, and the admin shows them read-only.
   - A test fails if any other code sets a listing's status directly.
+- **Photos are cleaned and private.**
+  - Listing photos (JPG, PNG or WebP, up to 10 MB, up to 6 per listing) are decoded to check they're real images.
+  - They're rotated upright, shrunk to at most 2048 px, and re-encoded from pixels only. All EXIF, GPS and other metadata is removed. Dealer document photos go through the same cleaning.
+  - Files live in a private bucket. The app hands out presigned links that expire after `PRESIGNED_URL_TTL_SECONDS`.
 - **Weights are exact decimals** (`NUMERIC(10,3)` kg). Each category on a listing has either a weight (priced per kg) or a quantity (priced per item), never both.
 - **Production refuses unsafe settings.** The backend won't start in production with debug on, the default secret key, the console OTP provider, or a fixed OTP.
 - **Money is stored as integer paise and weight as a decimal.** Floats are never used for either, and totals are computed on the server only.
