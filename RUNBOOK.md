@@ -44,6 +44,25 @@ Expected output: `{"status":"ok","checks":{"database":"ok","storage":"ok"}}`. Th
 
    The log shows the number masked, for example `Login code for +91XXXXXX3210: 123456`.
 
+### Applying as a dealer
+
+1. Log in with any account and choose **Become a dealer** on the home page (or open http://localhost/dealer).
+2. Fill in the form and choose **Use my location**. The browser asks for location access.
+3. Upload the documents on the status page that follows.
+
+The seeded accounts `9000000004` and `9000000005` already have applications with sample documents.
+
+### Faking a location in the browser
+
+Location works on `http://localhost` without HTTPS. To pretend to be somewhere else, for example a dealer in a different area:
+1. Open Chrome DevTools, then **More tools** (⋮), then **Sensors**.
+2. Under **Location**, pick a preset or choose **Other…** and enter a latitude and longitude, for example Ameerpet, Hyderabad at `17.4375`, `78.4482`.
+3. Reload the page and use **Use my location** again.
+
+Firefox: open `about:config` and set `geo.provider.network.url` to `data:application/json,{"location": {"lat": 17.4375, "lng": 78.4482}, "accuracy": 10}`. Restore the setting afterwards.
+
+To test on a real phone on the same Wi-Fi, the app must be served over HTTPS, because phones only allow location and camera on secure pages. Use an HTTPS tunnel to `http://localhost`, for example `cloudflared tunnel --url http://localhost`. Open the `https://` address it prints on the phone.
+
 ### Django admin
 
 Open http://localhost/admin. Its login page sends you to the web app's phone login, then brings you back. Only staff accounts get in, such as the seeded admin `9000000001`. Other logged-in users get "403: no admin access".
@@ -64,7 +83,7 @@ Editing files under `frontend/src` or `backend/` reloads automatically. Frontend
 
 ## Tests and lint
 
-Tests run against the PostGIS database in Docker, never SQLite.
+Tests run against the PostGIS database in Docker, never SQLite. Files that tests upload go to MinIO under a `test-runs/<id>/` prefix, which is deleted when the run ends.
 
 ```bash
 docker compose exec backend pytest
@@ -159,6 +178,7 @@ All variables are in `.env.example` with safe local defaults. Never commit `.env
 | `MINIO_ROOT_USER`, `MINIO_ROOT_PASSWORD` | `scrapbid`, `scrapbid-secret` | Local only |
 | `MINIO_CONSOLE_PORT` | `9001` | Host port for the MinIO console |
 | `SCHEDULER_INTERVAL_SECONDS` | `300` | Seconds between scheduler runs. Must be positive. |
+| `DEALER_DOCUMENT_MAX_BYTES` | `10485760` | Largest dealer verification document, in bytes (10 MB) |
 | `OTP_PROVIDER` | `console` | `console` prints codes to the logs. Not allowed in production. |
 | `DEV_FIXED_OTP` | `123456` | Local only, 6 digits, used only with the `console` provider. Must be empty in production. |
 | `OTP_EXPIRY_SECONDS` | `300` | Login code lifetime |
