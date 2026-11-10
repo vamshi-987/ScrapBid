@@ -47,6 +47,16 @@ export function HomePage({ me, view }: Props) {
               <p>{strings.shell.emptyView[view]}</p>
             </>
           )}
+          {!me.roles.includes("dealer") && (
+            <Link className="button secondary" to="/dealer">
+              {strings.dealer.becomeDealer}
+            </Link>
+          )}
+          {view === "buying" && (
+            <Link className="button secondary" to="/dealer">
+              {strings.dealer.applicationStatus}
+            </Link>
+          )}
         </section>
       )}
       {me === null && (

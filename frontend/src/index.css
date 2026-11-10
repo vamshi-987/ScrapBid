@@ -122,6 +122,43 @@ button:disabled {
   cursor: wait;
 }
 
+button.secondary,
+.button.secondary {
+  background: var(--surface);
+  color: var(--ok);
+  border: 1px solid var(--ok);
+}
+
+select {
+  font: inherit;
+  font-size: 1.125rem;
+  padding: 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+  background: var(--bg);
+  color: var(--text);
+}
+
+.documents {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.documents li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.75rem 0;
+  border-top: 1px solid var(--border);
+}
+
+.documents label.button {
+  flex-shrink: 0;
+  margin: 0;
+}
+
 button.link {
   background: none;
   color: var(--ok);

@@ -53,6 +53,8 @@ OTP_MAX_REQUESTS_PER_PHONE_10_MIN = env_positive_int("OTP_MAX_REQUESTS_PER_PHONE
 OTP_MAX_REQUESTS_PER_PHONE_DAY = env_positive_int("OTP_MAX_REQUESTS_PER_PHONE_DAY", 10)
 OTP_MAX_REQUESTS_PER_IP_HOUR = env_positive_int("OTP_MAX_REQUESTS_PER_IP_HOUR", 20)
 
+DEALER_DOCUMENT_MAX_BYTES = env_positive_int("DEALER_DOCUMENT_MAX_BYTES", 10 * 1024 * 1024)
+
 if DJANGO_ENV == "production":
     _problems = production_problems(
         debug=DEBUG,

@@ -53,7 +53,8 @@ Run `docker compose exec backend python manage.py seed_demo`, then log in at htt
 | `9000000001` | Admin. Also opens Django admin at http://localhost/admin. |
 | `9000000002` | Seller 1 |
 | `9000000003` | Seller 2 |
-| `9000000004` | Dealer who also sells. Switches between the Selling and Buying views. |
+| `9000000004` | Dealer who also sells (Ameerpet). Switches between the Selling and Buying views. Application waiting for review. |
+| `9000000005` | Dealer whose application is waiting for review (Kukatpally), with sample documents |
 
 The seed also adds scrap categories: paper, cardboard, iron, copper, aluminium, plastic, e-waste and batteries (the last two restricted), and appliance (priced per item). More demo data, such as dealers and listings, is added as features land. Any other valid Indian mobile number also works and gets a new seller account on first login.
 
@@ -72,6 +73,12 @@ The seed also adds scrap categories: paper, cardboard, iron, copper, aluminium, 
   - Admins add and edit them in Django admin. Each is priced per kg or per item, and can be marked restricted (e-waste, batteries).
   - Categories are deactivated, never deleted, because listings refer to them.
   - The web app reads active categories from `GET /api/categories`.
+- **Dealer onboarding.**
+  - Any user can apply to be a dealer from their existing account. The application starts as pending and adds the dealer role.
+  - A dealer sets a service area: shop location from the device plus a radius of 1–100 km. Locality and pincode are what others see.
+  - Required documents are a shop or trade licence, ID proof, and a Legal Metrology scale certificate (with its expiry date). GST and e-waste authorisation are optional.
+  - Documents are checked by content (PDF, JPG, PNG or WebP), stored under random names in the private bucket, and never returned as URLs.
+  - Only the last 4 characters of the ID number are kept, shown as `XXXX-XXXX-1234`.
 - **Production refuses unsafe settings.** The backend won't start in production with debug on, the default secret key, the console OTP provider, or a fixed OTP.
 - **Money is stored as integer paise and weight as a decimal.** Floats are never used for either, and totals are computed on the server only.
 - **Times are stored in UTC and shown in IST.** Amounts are shown in Indian format, e.g. ₹1,23,456.
