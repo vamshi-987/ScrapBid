@@ -1,4 +1,4 @@
-"""Dealer onboarding rules: applying, editing and storing verification documents."""
+"""Dealer onboarding and review rules: applying, editing, documents and admin review."""
 
 from uuid import uuid4
 
@@ -6,9 +6,16 @@ from django.conf import settings
 from django.contrib.gis.geos import Point
 from django.core.files.storage import default_storage
 from django.db import transaction
+from django.utils import timezone
 
 from accounts.models import Role
-from dealers.models import DealerDocument, DealerProfile, DealerStatus
+from dealers.models import (
+    REQUIRED_DOCUMENT_TYPES,
+    DealerDocument,
+    DealerProfile,
+    DealerStatus,
+    DocumentType,
+)
 from dealers.validation import detect_document_type
 
 
@@ -53,10 +60,16 @@ def apply_as_dealer(user, data):
 
 
 def update_profile(profile, data):
-    """Edit an application. Allowed only while it is waiting for review."""
-    if profile.status != DealerStatus.PENDING:
+    """Edit an application while it is pending, or fix and resubmit a rejected one.
+
+    Editing a rejected application sends it back to PENDING for another review.
+    """
+    if profile.status not in (DealerStatus.PENDING, DealerStatus.REJECTED):
         raise NotEditable()
     _apply_fields(profile, data)
+    if profile.status == DealerStatus.REJECTED:
+        profile.status = DealerStatus.PENDING
+        profile.status_reason = ""
     profile.save()
     return profile
 
@@ -90,3 +103,60 @@ def store_document(profile, doc_type, uploaded_file):
         if old_key:
             transaction.on_commit(lambda: default_storage.delete(old_key))
     return document
+
+
+# --- Admin review ----------------------------------------------------------------
+
+# Status changes an admin may make. Rejected dealers resubmit (back to PENDING) themselves.
+ALLOWED_REVIEWS = {
+    DealerStatus.PENDING: {DealerStatus.APPROVED, DealerStatus.REJECTED},
+    DealerStatus.APPROVED: {DealerStatus.SUSPENDED},
+    DealerStatus.SUSPENDED: {DealerStatus.APPROVED},
+    DealerStatus.REJECTED: set(),
+}
+REASON_REQUIRED = {DealerStatus.REJECTED, DealerStatus.SUSPENDED}
+
+
+class ReviewError(Exception):
+    messages = {
+        "not_allowed": "This status change isn't allowed.",
+        "reason_required": "Give a reason to reject or suspend a dealer.",
+        "missing_documents": "Required documents are missing.",
+        "certificate_expired": "The scale certificate has expired.",
+    }
+
+    def __init__(self, code):
+        super().__init__(self.messages[code])
+        self.code = code
+
+
+def missing_documents(profile):
+    uploaded = set(profile.documents.values_list("doc_type", flat=True))
+    return [doc_type for doc_type in REQUIRED_DOCUMENT_TYPES if doc_type not in uploaded]
+
+
+def review_dealer(profile, to_status, reviewer, reason=""):
+    """The only place an admin changes a dealer's status."""
+    reason = reason.strip()
+    with transaction.atomic():
+        profile = DealerProfile.objects.select_for_update().get(pk=profile.pk)
+        if to_status not in ALLOWED_REVIEWS[profile.status]:
+            raise ReviewError("not_allowed")
+        if to_status in REASON_REQUIRED and not reason:
+            raise ReviewError("reason_required")
+        if to_status == DealerStatus.APPROVED:
+            if missing_documents(profile):
+                raise ReviewError("missing_documents")
+            if profile.scale_certificate_expires_on < timezone.localdate():
+                raise ReviewError("certificate_expired")
+        profile.status = to_status
+        profile.status_reason = "" if to_status == DealerStatus.APPROVED else reason
+        profile.reviewed_by = reviewer
+        profile.reviewed_at = timezone.now()
+        profile.save()
+    return profile
+
+
+def can_authorise_ewaste(profile):
+    """E-waste authorisation needs an uploaded authorisation document."""
+    return profile.documents.filter(doc_type=DocumentType.EWASTE_AUTHORISATION).exists()

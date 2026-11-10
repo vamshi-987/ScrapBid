@@ -3,6 +3,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   applyAsDealer,
   fetchDealerProfile,
+  resubmitApplication,
   uploadDocument,
   type DealerApplication,
 } from "./dealer";
@@ -102,5 +103,25 @@ describe("uploadDocument", () => {
       ok: false,
       reason,
     });
+  });
+});
+
+describe("resubmitApplication", () => {
+  it("sends an empty PATCH with the CSRF token", async () => {
+    const fetchMock = respondWith(json(200, { status: "pending" }));
+
+    expect(await resubmitApplication()).toEqual({ status: "pending" });
+
+    const [path, init] = fetchMock.mock.calls[0];
+    expect(path).toBe("/api/dealer/profile");
+    expect(init.method).toBe("PATCH");
+    expect(init.body).toBe("{}");
+    expect((init.headers as Headers).get("X-CSRFToken")).toBe("tok123");
+  });
+
+  it("returns null when the change isn't allowed", async () => {
+    respondWith(json(409, { code: "not_editable" }));
+
+    expect(await resubmitApplication()).toBeNull();
   });
 });

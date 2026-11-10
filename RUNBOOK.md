@@ -73,6 +73,15 @@ To make another account an admin, use the admin (Users, then tick **Is staff** a
 docker compose exec backend python manage.py shell -c "from accounts.models import User; User.objects.filter(phone='+91XXXXXXXXXX').update(is_staff=True, is_superuser=True)"
 ```
 
+To review dealers, go to **Dealer profiles** in the admin.
+- **Approve, reject, suspend or reinstate:** tick one or more dealers, choose the action, and type a reason when rejecting or suspending (the dealer sees it). Then press **Go**.
+  - Approval is refused, with a message, if required documents are missing or the scale certificate has expired.
+  - Status can't be edited directly.
+- **Check documents:** open a dealer and use **Open** next to each document. The file is streamed from private storage to admins only.
+- **Authorise for e-waste:** open the dealer and tick **Ewaste authorised**. This needs an uploaded e-waste authorisation document.
+
+The seeded dealer `9000000005` is waiting for review, so you can try this.
+
 To manage scrap categories, go to Categories in the admin.
 - **Add a category:** set its pricing unit (per kg or per item), and tick **Is restricted** for regulated items such as e-waste.
 - **Retire a category:** untick **Is active**. Categories can't be deleted.
