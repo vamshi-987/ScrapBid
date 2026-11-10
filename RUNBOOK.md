@@ -54,6 +54,10 @@ To make another account an admin, use the admin (Users, then tick **Is staff** a
 docker compose exec backend python manage.py shell -c "from accounts.models import User; User.objects.filter(phone='+91XXXXXXXXXX').update(is_staff=True, is_superuser=True)"
 ```
 
+To manage scrap categories, go to Categories in the admin.
+- **Add a category:** set its pricing unit (per kg or per item), and tick **Is restricted** for regulated items such as e-waste.
+- **Retire a category:** untick **Is active**. Categories can't be deleted.
+
 To suspend an account, go to Users in the admin, tick the account and choose **Suspend selected accounts**. The user is logged out straight away and can't log in again until reactivated.
 
 Editing files under `frontend/src` or `backend/` reloads automatically. Frontend dependencies live in a Docker volume, not in `frontend/node_modules` on your machine. They reinstall automatically when `package-lock.json` changes.

@@ -55,7 +55,7 @@ Run `docker compose exec backend python manage.py seed_demo`, then log in at htt
 | `9000000003` | Seller 2 |
 | `9000000004` | Dealer who also sells. Switches between the Selling and Buying views. |
 
-More demo data, such as dealers, categories and listings, is added as features land. Any other valid Indian mobile number also works and gets a new seller account on first login.
+The seed also adds scrap categories: paper, cardboard, iron, copper, aluminium, plastic, e-waste and batteries (the last two restricted), and appliance (priced per item). More demo data, such as dealers and listings, is added as features land. Any other valid Indian mobile number also works and gets a new seller account on first login.
 
 ## Key decisions
 
@@ -68,6 +68,10 @@ More demo data, such as dealers, categories and listings, is added as features l
 - **One account, several roles.** A user's roles (`seller`, `dealer`) are stored as a set, so a dealer who also sells uses the same account and switches views. Admin access is Django's staff flag.
 - **Admins log in by phone OTP too.** Django admin's password login redirects to the web app's login, and the session then opens the admin.
 - **Suspending an account** (Django admin, "Suspend selected accounts") blocks login and ends existing sessions straight away.
+- **Categories are data, not code.**
+  - Admins add and edit them in Django admin. Each is priced per kg or per item, and can be marked restricted (e-waste, batteries).
+  - Categories are deactivated, never deleted, because listings refer to them.
+  - The web app reads active categories from `GET /api/categories`.
 - **Production refuses unsafe settings.** The backend won't start in production with debug on, the default secret key, the console OTP provider, or a fixed OTP.
 - **Money is stored as integer paise and weight as a decimal.** Floats are never used for either, and totals are computed on the server only.
 - **Times are stored in UTC and shown in IST.** Amounts are shown in Indian format, e.g. ₹1,23,456.

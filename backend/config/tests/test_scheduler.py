@@ -4,6 +4,8 @@ import pytest
 import scheduler
 
 
+# run_jobs closes stale DB connections after each job, which touches the database.
+@pytest.mark.django_db
 def test_failing_job_does_not_stop_later_jobs(monkeypatch):
     calls = []
 
