@@ -292,3 +292,26 @@ button.link {
 .estimate {
   margin: 0.5rem 0;
 }
+
+.bell {
+  position: relative;
+  color: var(--ok);
+}
+
+.badge {
+  display: inline-block;
+  min-width: 1.25rem;
+  margin-left: 0.25rem;
+  padding: 0 0.375rem;
+  border-radius: 999px;
+  background: var(--error);
+  color: #ffffff;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-align: center;
+}
+
+.notifications li.unread strong::before {
+  content: "● ";
+  color: var(--ok);
+}

@@ -66,6 +66,8 @@ Log in as an approved dealer and open the Buying view. Dual-role users switch vi
 
 To make an offer, open a listing from the Buying view and enter a rate in rupees for each item. The estimated total updates as you type. Send it, then update or withdraw it from the same page. **My offers** in the Buying view lists them all. The seeded dealers already have offers, so withdraw one first to try making a new offer on the same listing.
 
+Sellers get a notification for every new offer. The header shows the unread count, and **Notifications** lists them. On a fresh setup, the seeded offers leave Seller 1 (`9000000002`) with 3 unread.
+
 To see how the service area works, change a dealer's location with DevTools Sensors, or edit it while pending. Then compare what each one sees.
 
 ### Applying as a dealer

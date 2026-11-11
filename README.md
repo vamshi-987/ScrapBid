@@ -118,6 +118,10 @@ The seed also adds scrap categories: paper, cardboard, iron, copper, aluminium, 
   - Offers are labelled as estimates everywhere: the final amount depends on the weight measured at pickup.
   - A dealer can have one active offer per listing, enforced by the database. They can edit it (which restarts its validity) or withdraw it while the listing is open.
   - Offers expire after `OFFER_EXPIRY_HOURS` (24), because rates change daily. Once a listing has an active offer, the seller can't edit it. Offers close when the listing expires.
+- **In-app notifications** (no SMS, WhatsApp or push in the MVP).
+  - Sellers are notified of each new offer. The header shows an unread count, refreshed every 30 seconds while the tab is open.
+  - Notifications store only the kind and record IDs. The message text comes from the app's strings (ready for other languages), and no personal data is copied into them.
+  - A notification is created in the same transaction as the change, so a failed change leaves none behind.
 - **Photos are cleaned and private.**
   - Listing photos (JPG, PNG or WebP, up to 10 MB, up to 6 per listing) are decoded to check they're real images.
   - They're rotated upright, shrunk to at most 2048 px, and re-encoded from pixels only. All EXIF, GPS and other metadata is removed. Dealer document photos go through the same cleaning.

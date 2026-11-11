@@ -237,5 +237,14 @@ export const en = {
       error: "Something went wrong. Check your connection and try again.",
     },
   },
+  notifications: {
+    title: "Notifications",
+    unread: "unread",
+    none: "Nothing new yet.",
+    markAllRead: "Mark all as read",
+    kinds: {
+      new_offer: "New offer on your listing",
+    },
+  },
   notFound: "Page not found",
 } as const;
