@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import { Link } from "react-router";
 
 import type { Me } from "../api/auth";
+import { NotificationBell } from "../notifications/NotificationBell";
 import { availableViews, type View } from "../session/views";
 import { strings } from "../strings";
 
@@ -25,6 +26,7 @@ export function AppShell({ me, view, onViewChange, onLogout, children }: Props) 
         </Link>
         {me && (
           <nav className="shell-actions">
+            <NotificationBell />
             {me.is_staff && <a href="/admin/">{t.admin}</a>}
             <button type="button" className="link" onClick={onLogout}>
               {strings.session.logOut}
