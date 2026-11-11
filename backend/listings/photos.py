@@ -8,10 +8,10 @@ from django.core.files.storage import default_storage
 from django.db import transaction
 
 from config.images import InvalidImage, clean_image
-from listings.models import Listing, ListingPhoto, ListingStatus
+from listings.models import Listing, ListingPhoto
+from listings.services import is_editable
 
 MAX_DIMENSION = 2048
-EDITABLE_STATUSES = (ListingStatus.DRAFT, ListingStatus.OPEN)
 
 
 class PhotoError(Exception):
@@ -44,7 +44,7 @@ def add_photo(listing, uploaded_file):
         with transaction.atomic():
             # Lock the listing so concurrent uploads can't exceed the photo limit.
             locked = Listing.objects.select_for_update().get(pk=listing.pk)
-            if locked.status not in EDITABLE_STATUSES:
+            if not is_editable(locked):
                 raise PhotoError("not_editable")
             if locked.photos.count() >= settings.LISTING_MAX_PHOTOS:
                 raise PhotoError("too_many")
@@ -64,7 +64,7 @@ def add_photo(listing, uploaded_file):
 def remove_photo(photo):
     with transaction.atomic():
         listing = Listing.objects.select_for_update().get(pk=photo.listing_id)
-        if listing.status not in EDITABLE_STATUSES:
+        if not is_editable(listing):
             raise PhotoError("not_editable")
         key = photo.file.name
         photo.delete()
