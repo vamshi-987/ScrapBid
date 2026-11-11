@@ -66,3 +66,18 @@ export async function fetchMyOffers(): Promise<Offer[]> {
     return [];
   }
 }
+
+/** An offer as the listing's seller sees it: dealer's business name and area, no contact. */
+export type SellerOffer = Pick<
+  Offer,
+  "id" | "status" | "is_live" | "expires_at" | "rates" | "estimated_total_paise"
+> & { dealer_name: string; dealer_locality: string };
+
+export async function fetchListingOffers(listingId: number): Promise<SellerOffer[]> {
+  try {
+    const response = await apiFetch(`/api/listings/${listingId}/offers`);
+    return response.ok ? ((await response.json()) as SellerOffer[]) : [];
+  } catch {
+    return [];
+  }
+}

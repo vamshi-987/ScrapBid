@@ -11,6 +11,7 @@ import {
 } from "../api/listings";
 import { formatIST } from "../format/time";
 import { itemSummary } from "../listings/items";
+import { SellerOffers } from "../offers/SellerOffers";
 import { strings } from "../strings";
 
 const t = strings.listings;
@@ -119,6 +120,8 @@ export function ListingPage() {
           </>
         )}
       </section>
+
+      {listing.status !== "draft" && <SellerOffers listingId={listing.id} />}
 
       <section className="card">
         <h2>
