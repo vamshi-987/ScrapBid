@@ -244,19 +244,18 @@ def test_sellers_and_anonymous_users_are_refused(categories):
 # --- Database work ---------------------------------------------------------
 
 
-def test_query_count_does_not_grow_with_the_number_of_listings(
-    categories, django_assert_max_num_queries
-):
+def test_query_count_does_not_grow_with_the_number_of_listings(categories, count_queries):
     client = client_for(make_dealer())
     for i in range(3):
         make_listing(categories, at=north_of_shop(i + 1), restricted=False)
-    with django_assert_max_num_queries(12) as few:
-        client.get(FEED)
+    three = count_queries(lambda: client.get(FEED))
 
     for i in range(12):
         make_listing(categories, at=north_of_shop(i * 0.5 + 0.2), photos=2)
-    with django_assert_max_num_queries(len(few.captured_queries)):
-        client.get(FEED)
+    fifteen = count_queries(lambda: client.get(FEED))
+
+    assert three <= 12
+    assert fifteen == three
 
 
 def test_feed_is_paginated(categories):
