@@ -64,6 +64,8 @@ Log in as an approved dealer and open the Buying view. Dual-role users switch vi
 | `9000000008` Warangal | none (out of range) |
 | `9000000005` pending | a "not approved yet" message |
 
+To make an offer, open a listing from the Buying view and enter a rate in rupees for each item. The estimated total updates as you type. Send it, then update or withdraw it from the same page. **My offers** in the Buying view lists them all. The seeded dealers already have offers, so withdraw one first to try making a new offer on the same listing.
+
 To see how the service area works, change a dealer's location with DevTools Sensors, or edit it while pending. Then compare what each one sees.
 
 ### Applying as a dealer
@@ -215,6 +217,7 @@ All variables are in `.env.example` with safe local defaults. Never commit `.env
 | `LISTING_MAX_PHOTOS` | `6` | Most photos per listing |
 | `LISTING_MAX_WEIGHT_KG` | `10000` | Largest declared weight for one category on a listing, in kg |
 | `LISTING_EXPIRY_DAYS` | `7` | Days after publishing before an open listing with no accepted offer expires |
+| `OFFER_EXPIRY_HOURS` | `24` | Hours an offer stays valid after it's made or last edited |
 | `MINIO_ROOT_USER`, `MINIO_ROOT_PASSWORD` | `scrapbid`, `scrapbid-secret` | Local only |
 | `MINIO_CONSOLE_PORT` | `9001` | Host port for the MinIO console |
 | `SCHEDULER_INTERVAL_SECONDS` | `300` | Seconds between scheduler runs. Must be positive. |

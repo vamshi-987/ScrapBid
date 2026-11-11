@@ -1,3 +1,4 @@
+import threading
 from datetime import timedelta
 from decimal import Decimal
 from io import StringIO
@@ -5,6 +6,7 @@ from io import StringIO
 import pytest
 from django.contrib.gis.geos import Point
 from django.core.management import call_command
+from django.db import connection
 from django.utils import timezone
 from rest_framework.test import APIClient
 
@@ -116,6 +118,7 @@ def test_running_twice_changes_nothing_the_second_time(seller, paper):
     assert AuditLog.objects.count() == 1
 
 
+@pytest.mark.django_db(transaction=True)
 def test_a_listing_that_changes_mid_run_is_skipped(seller, paper, monkeypatch):
     listing = make_listing(seller, paper, published_ago=10 * DAY)
     other = make_listing(seller, paper, published_ago=10 * DAY)
@@ -124,13 +127,20 @@ def test_a_listing_that_changes_mid_run_is_skipped(seller, paper, monkeypatch):
 
     real_transition = services.transition
 
-    def accept_first_then_expire(target, to_status, actor, **kwargs):
+    def offer_accepted_meanwhile(target, to_status, actor, **kwargs):
         if target.pk == listing.pk:
-            # An offer is accepted between the job's query and its update.
-            Listing.objects.filter(pk=listing.pk).update(status=ListingStatus.OFFER_ACCEPTED)
+            # Another request accepts an offer and commits on its own connection,
+            # between the job's query and its locked update.
+            def accept():
+                Listing.objects.filter(pk=listing.pk).update(status=ListingStatus.OFFER_ACCEPTED)
+                connection.close()
+
+            thread = threading.Thread(target=accept)
+            thread.start()
+            thread.join()
         return real_transition(target, to_status, actor, **kwargs)
 
-    monkeypatch.setattr(services, "transition", accept_first_then_expire)
+    monkeypatch.setattr(services, "transition", offer_accepted_meanwhile)
 
     assert "Expired 1 listing(s)." in expire()
     listing.refresh_from_db()

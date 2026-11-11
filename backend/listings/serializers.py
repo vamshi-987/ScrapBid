@@ -187,7 +187,17 @@ class DealerListingSerializer(serializers.ModelSerializer):
 
     items = ListingItemSerializer(many=True)
     photos = ListingPhotoSerializer(many=True)
+    my_offer = serializers.SerializerMethodField()
 
     class Meta:
         model = Listing
-        fields = ["id", "locality", "pincode", "items", "photos", "published_at"]
+        fields = ["id", "locality", "pincode", "items", "photos", "published_at", "my_offer"]
+
+    def get_my_offer(self, listing):
+        """The requesting dealer's live offer on this listing, if any (never other dealers').
+
+        Comes prefetched by the feed query (listings.feed.visible_to_dealer)."""
+        from offers.serializers import OfferSerializer
+
+        live = [offer for offer in listing.my_offers if offer.is_live]
+        return OfferSerializer(live[0]).data if live else None

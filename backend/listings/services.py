@@ -26,8 +26,13 @@ class ListingError(Exception):
 
 
 def is_editable(listing):
-    """Sellers may change a listing (details, items, photos) only before any offer."""
-    return listing.status in (ListingStatus.DRAFT, ListingStatus.OPEN)
+    """Sellers may change a listing (details, items, photos) only while it has no
+    active offer: dealers priced what they saw."""
+    if listing.status == ListingStatus.DRAFT:
+        return True
+    return (
+        listing.status == ListingStatus.OPEN and not listing.offers.filter(status="active").exists()
+    )
 
 
 def _set_fields(listing, data):
@@ -112,9 +117,13 @@ def expire_overdue_listings():
         status=ListingStatus.OPEN, published_at__lte=expiry_cutoff()
     ).values_list("pk", flat=True)
     expired = 0
+    from offers.services import close_active_offers
+
     for pk in list(overdue):
         try:
-            transition(Listing(pk=pk), ListingStatus.EXPIRED, None)
+            with transaction.atomic():
+                listing = transition(Listing(pk=pk), ListingStatus.EXPIRED, None)
+                close_active_offers(listing)
         except TransitionError:
             continue
         expired += 1

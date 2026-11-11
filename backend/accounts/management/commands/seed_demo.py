@@ -17,8 +17,10 @@ from dealers.models import DealerProfile, DealerStatus, DocumentType, IdType
 from dealers.services import can_authorise_ewaste, review_dealer, store_document
 from listings.models import Category, Listing, ListingStatus, PricingUnit
 from listings.photos import add_photo
-from listings.services import create_listing, publish_listing
+from listings.services import create_listing, expiry_cutoff, publish_listing
 from listings.transitions import transition
+from offers.models import OfferStatus
+from offers.services import create_offer
 
 # Demo accounts for local testing. Listed in README.md; log in with DEV_FIXED_OTP.
 DEMO_USERS = [
@@ -192,6 +194,17 @@ DEMO_LISTINGS = [
     },
 ]
 
+# Offers on the open demo listings: (listing marker, dealer phone, {category: paise}).
+# Rates are per kg, or per item for appliances. E-waste only from the authorised dealer.
+DEMO_OFFERS = [
+    ("Demo listing 1:", "+919000000006", {"Paper": 1400, "Cardboard": 1000}),
+    ("Demo listing 1:", "+919000000007", {"Paper": 1500, "Cardboard": 900}),
+    ("Demo listing 1:", "+919000000004", {"Paper": 1300, "Cardboard": 1100}),
+    ("Demo listing 3:", "+919000000006", {"E-waste": 4000, "Appliance": 150000}),
+    ("Demo listing 4:", "+919000000006", {"Copper": 72000}),
+    ("Demo listing 4:", "+919000000007", {"Copper": 71000}),
+]
+
 PHOTO_COLOURS = ["#8d6e63", "#78909c", "#a1887f"]
 
 # A tiny valid PDF used as every demo verification document.
@@ -242,6 +255,10 @@ class Command(BaseCommand):
                 self._seed_listing(spec)
             self.stdout.write(f"Listings: {len(DEMO_LISTINGS)}")
 
+            for marker, phone, rates in DEMO_OFFERS:
+                self._seed_offer(marker, phone, rates)
+            self.stdout.write(f"Offers: {len(DEMO_OFFERS)}")
+
         self.stdout.write(self.style.SUCCESS("Demo data is ready."))
 
     def _seed_dealer(self, spec):
@@ -281,10 +298,18 @@ class Command(BaseCommand):
         seller = User.objects.get(phone=spec["phone"])
         existing = Listing.objects.filter(seller=seller, address_line=spec["address_line"]).first()
         if existing:
-            if existing.status == spec["status"] and existing.photos.count() == spec["photos"]:
+            overdue = (
+                existing.status == ListingStatus.OPEN and existing.published_at <= expiry_cutoff()
+            )
+            if (
+                existing.status == spec["status"]
+                and existing.photos.count() == spec["photos"]
+                and not overdue
+            ):
                 return
             for photo in existing.photos.all():
                 default_storage.delete(photo.file.name)
+            existing.offers.all().delete()
             existing.delete()
 
         categories = {c.name: c for c in Category.objects.all()}
@@ -317,3 +342,13 @@ class Command(BaseCommand):
             published = timezone.now() - timedelta(days=settings.LISTING_EXPIRY_DAYS + 1)
             Listing.objects.filter(pk=listing.pk).update(published_at=published)
             transition(listing, ListingStatus.EXPIRED, None)
+
+    def _seed_offer(self, marker, phone, rates):
+        """Keep a live demo offer; otherwise make a fresh one through the offer rules."""
+        listing = Listing.objects.get(address_line__startswith=marker)
+        dealer = DealerProfile.objects.get(user__phone=phone)
+        current = listing.offers.filter(dealer=dealer, status=OfferStatus.ACTIVE).first()
+        if current and current.is_live:
+            return
+        categories = {item.category.name: item.category_id for item in listing.items.all()}
+        create_offer(dealer, listing.pk, {categories[name]: paise for name, paise in rates.items()})
