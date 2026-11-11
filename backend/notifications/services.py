@@ -2,7 +2,7 @@ from django.utils import timezone
 
 from notifications.models import Notification
 
-ALLOWED_DATA_KEYS = {"listing_id", "offer_id"}
+ALLOWED_DATA_KEYS = {"listing_id", "offer_id", "order_id"}
 
 
 def notify(user, kind, **ids):

@@ -52,7 +52,7 @@ Run `docker compose exec backend python manage.py seed_demo`, then log in at htt
 |---|---|
 | `9000000001` | Admin. Also opens Django admin at http://localhost/admin. |
 | `9000000002` | Seller 1 (Ameerpet): an open listing (paper and cardboard) and a draft iron listing to add a photo to and publish |
-| `9000000003` | Seller 2 (Secunderabad): an open listing with restricted e-waste and an appliance, and an expired plastic listing to relist |
+| `9000000003` | Seller 2 (Secunderabad): an open listing with restricted e-waste and an appliance, an expired plastic listing to relist, and an aluminium listing with an accepted offer |
 | `9000000004` | Approved dealer who also sells (Ameerpet), with an open 350.5 kg bulk copper listing. Switches between the Selling and Buying views. |
 | `9000000005` | Dealer whose application is waiting for review (Kukatpally), with sample documents to approve in the admin |
 | `9000000006` | Approved dealer, authorised for e-waste (Begumpet) |
@@ -118,6 +118,10 @@ The seed also adds scrap categories: paper, cardboard, iron, copper, aluminium, 
   - Offers are labelled as estimates everywhere: the final amount depends on the weight measured at pickup.
   - A dealer can have one active offer per listing, enforced by the database. They can edit it (which restarts its validity) or withdraw it while the listing is open.
   - The seller compares offers on their listing page, highest estimate first. They see each dealer's business name and area, but no contact details until they accept an offer. Only offers from dealers who are still approved, hold a valid scale certificate and still cover the pickup address are shown. Offers past their time show as expired.
+  - **Accepting** an offer is atomic. The listing row is locked, so two accepts can never both succeed; the second gets "already accepted". A retried accept returns the same order.
+    - Accepting creates an order with a snapshot of the declared amounts and agreed rates. Later rate edits can't change it.
+    - Every other offer is marked rejected ("another offer was accepted"), so it can come back if that dealer cancels. The accepted dealer is notified.
+    - Only live offers from dealers who are still eligible can be accepted.
   - Offers expire after `OFFER_EXPIRY_HOURS` (24), because rates change daily. Once a listing has an active offer, the seller can't edit it. Offers close when the listing expires.
 - **In-app notifications** (no SMS, WhatsApp or push in the MVP).
   - Sellers are notified of each new offer. The header shows an unread count, refreshed every 30 seconds while the tab is open.

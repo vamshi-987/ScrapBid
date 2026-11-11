@@ -21,6 +21,7 @@ from listings.services import create_listing, expiry_cutoff, publish_listing
 from listings.transitions import transition
 from offers.models import OfferStatus
 from offers.services import create_offer
+from orders.services import accept_offer
 
 # Demo accounts for local testing. Listed in README.md; log in with DEV_FIXED_OTP.
 DEMO_USERS = [
@@ -192,6 +193,17 @@ DEMO_LISTINGS = [
         "photos": 1,
         "status": ListingStatus.EXPIRED,  # relist it in the app
     },
+    {
+        "phone": "+919000000003",
+        "address_line": "Demo listing 6: 1-7-80, Secunderabad Market Road",
+        "locality": "Secunderabad",
+        "pincode": "500003",
+        "latitude": 17.4405,
+        "longitude": 78.4990,
+        "items": [("Aluminium", "30", None)],
+        "photos": 1,
+        "status": ListingStatus.OFFER_ACCEPTED,  # offers below; one accepted
+    },
 ]
 
 # Offers on the open demo listings: (listing marker, dealer phone, {category: paise}).
@@ -203,7 +215,12 @@ DEMO_OFFERS = [
     ("Demo listing 3:", "+919000000006", {"E-waste": 4000, "Appliance": 150000}),
     ("Demo listing 4:", "+919000000006", {"Copper": 72000}),
     ("Demo listing 4:", "+919000000007", {"Copper": 71000}),
+    ("Demo listing 6:", "+919000000006", {"Aluminium": 11000}),
+    ("Demo listing 6:", "+919000000007", {"Aluminium": 11500}),
 ]
+
+# Offers the seller has accepted: (listing marker, dealer phone).
+DEMO_ACCEPTED = [("Demo listing 6:", "+919000000007")]
 
 PHOTO_COLOURS = ["#8d6e63", "#78909c", "#a1887f"]
 
@@ -259,6 +276,10 @@ class Command(BaseCommand):
                 self._seed_offer(marker, phone, rates)
             self.stdout.write(f"Offers: {len(DEMO_OFFERS)}")
 
+            for marker, phone in DEMO_ACCEPTED:
+                self._seed_acceptance(marker, phone)
+            self.stdout.write(f"Accepted offers: {len(DEMO_ACCEPTED)}")
+
         self.stdout.write(self.style.SUCCESS("Demo data is ready."))
 
     def _seed_dealer(self, spec):
@@ -309,6 +330,7 @@ class Command(BaseCommand):
                 return
             for photo in existing.photos.all():
                 default_storage.delete(photo.file.name)
+            existing.orders.all().delete()
             existing.offers.all().delete()
             existing.delete()
 
@@ -335,7 +357,11 @@ class Command(BaseCommand):
             colour = PHOTO_COLOURS[index % len(PHOTO_COLOURS)]
             Image.new("RGB", (800, 600), colour).save(buffer, format="JPEG")
             add_photo(listing, ContentFile(buffer.getvalue(), name="demo.jpg"))
-        if spec["status"] in (ListingStatus.OPEN, ListingStatus.EXPIRED):
+        if spec["status"] in (
+            ListingStatus.OPEN,
+            ListingStatus.EXPIRED,
+            ListingStatus.OFFER_ACCEPTED,
+        ):
             publish_listing(listing, seller)
         if spec["status"] == ListingStatus.EXPIRED:
             # Published long enough ago to have expired, then expired by the system.
@@ -346,9 +372,19 @@ class Command(BaseCommand):
     def _seed_offer(self, marker, phone, rates):
         """Keep a live demo offer; otherwise make a fresh one through the offer rules."""
         listing = Listing.objects.get(address_line__startswith=marker)
+        if listing.status != ListingStatus.OPEN:
+            return  # already accepted (or closed): its offers are settled
         dealer = DealerProfile.objects.get(user__phone=phone)
         current = listing.offers.filter(dealer=dealer, status=OfferStatus.ACTIVE).first()
         if current and current.is_live:
             return
         categories = {item.category.name: item.category_id for item in listing.items.all()}
         create_offer(dealer, listing.pk, {categories[name]: paise for name, paise in rates.items()})
+
+    def _seed_acceptance(self, marker, phone):
+        """Accept the dealer's offer through the real accept rules (skipped if done)."""
+        listing = Listing.objects.get(address_line__startswith=marker)
+        if listing.status != ListingStatus.OPEN:
+            return
+        offer = listing.offers.get(dealer__user__phone=phone, status=OfferStatus.ACTIVE)
+        accept_offer(listing.seller, offer)

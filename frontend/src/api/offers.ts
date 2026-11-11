@@ -81,3 +81,27 @@ export async function fetchListingOffers(listingId: number): Promise<SellerOffer
     return [];
   }
 }
+
+export type Order = {
+  id: number;
+  listing: number;
+  offer: number;
+  status: "active" | "completed" | "cancelled";
+  dealer_name: string;
+  estimated_total_paise: number;
+  created_at: string;
+};
+
+/** Accept an offer on your own listing. A retry returns the same order. */
+export async function acceptOffer(
+  offerId: number,
+): Promise<{ ok: true; order: Order } | { ok: false; reason: string }> {
+  try {
+    const response = await postJson(`/api/offers/${offerId}/accept`);
+    if (response.ok) return { ok: true, order: (await response.json()) as Order };
+    const body = (await response.json().catch(() => ({}))) as { code?: unknown };
+    return { ok: false, reason: typeof body.code === "string" ? body.code : "error" };
+  } catch {
+    return { ok: false, reason: "error" };
+  }
+}
