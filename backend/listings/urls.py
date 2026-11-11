@@ -12,6 +12,11 @@ urlpatterns = [
         name="listing-publish",
     ),
     path(
+        "listings/<int:listing_id>/offers",
+        views.ListingOffersForSellerView.as_view(),
+        name="listing-offers",
+    ),
+    path(
         "listings/<int:listing_id>/relist",
         views.ListingRelistView.as_view(),
         name="listing-relist",

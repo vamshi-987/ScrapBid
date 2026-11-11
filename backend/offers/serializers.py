@@ -65,3 +65,23 @@ class OfferSerializer(serializers.ModelSerializer):
         rates = self._rates(offer)
         items = [item for item in offer.listing.items.all() if item.category_id in rates]
         return estimated_total_paise(items, rates)
+
+
+class SellerOfferSerializer(OfferSerializer):
+    """An offer as the listing's seller sees it: who the dealer is (business name and
+    area), but no phone or exact location until an offer is accepted."""
+
+    dealer_name = serializers.CharField(source="dealer.business_name")
+    dealer_locality = serializers.CharField(source="dealer.locality")
+
+    class Meta(OfferSerializer.Meta):
+        fields = [
+            "id",
+            "status",
+            "is_live",
+            "expires_at",
+            "dealer_name",
+            "dealer_locality",
+            "rates",
+            "estimated_total_paise",
+        ]
