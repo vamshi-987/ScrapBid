@@ -50,7 +50,7 @@ Expected output: `{"status":"ok","checks":{"database":"ok","storage":"ok"}}`. Th
 2. Choose **Sell scrap**. Tick categories and enter a weight (or a count for appliances), fill in the address, choose **Use my location**, then **Save and add photos**.
 3. On the listing page, use **Add photo** (it opens the camera on a phone), then **Publish listing**.
 
-The seeded draft iron listing for `9000000002` is ready to have a photo added and be published.
+The seeded draft iron listing for `9000000002` is ready to have a photo added and be published. `9000000003` has an expired listing: open it and choose **Relist**.
 
 ### Browsing listings as a dealer
 
@@ -151,7 +151,10 @@ The `scheduler` service runs Django management commands every `SCHEDULER_INTERVA
 
 | Job | What it does |
 |---|---|
-| `purge_otp_challenges` | Deletes login code records older than one day | A failing job is logged, and the other jobs and later runs still happen.
+| `purge_otp_challenges` | Deletes login code records older than one day |
+| `expire_listings` | Moves open listings with no accepted offer to expired, `LISTING_EXPIRY_DAYS` after publishing |
+
+To expire listings straight away instead of waiting for the next run: `docker compose exec backend python manage.py expire_listings` A failing job is logged, and the other jobs and later runs still happen.
 
 ```bash
 docker compose logs -f scheduler        # one "Scheduler run finished" line per run
@@ -211,6 +214,7 @@ All variables are in `.env.example` with safe local defaults. Never commit `.env
 | `LISTING_PHOTO_MAX_BYTES` | `10485760` | Largest listing photo, in bytes (10 MB) |
 | `LISTING_MAX_PHOTOS` | `6` | Most photos per listing |
 | `LISTING_MAX_WEIGHT_KG` | `10000` | Largest declared weight for one category on a listing, in kg |
+| `LISTING_EXPIRY_DAYS` | `7` | Days after publishing before an open listing with no accepted offer expires |
 | `MINIO_ROOT_USER`, `MINIO_ROOT_PASSWORD` | `scrapbid`, `scrapbid-secret` | Local only |
 | `MINIO_CONSOLE_PORT` | `9001` | Host port for the MinIO console |
 | `SCHEDULER_INTERVAL_SECONDS` | `300` | Seconds between scheduler runs. Must be positive. |

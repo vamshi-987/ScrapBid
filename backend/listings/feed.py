@@ -6,6 +6,7 @@ from django.contrib.gis.measure import D
 from django.db.models import Exists, OuterRef
 
 from listings.models import Listing, ListingItem, ListingStatus
+from listings.services import expiry_cutoff
 
 
 def visible_to_dealer(profile):
@@ -13,6 +14,8 @@ def visible_to_dealer(profile):
     listings = (
         Listing.objects.filter(
             status=ListingStatus.OPEN,
+            # Hidden as soon as it's overdue, even before the expiry job runs.
+            published_at__gt=expiry_cutoff(),
             location__dwithin=(profile.location, D(km=profile.service_radius_km)),
         )
         .exclude(seller_id=profile.user_id)

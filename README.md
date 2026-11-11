@@ -52,7 +52,7 @@ Run `docker compose exec backend python manage.py seed_demo`, then log in at htt
 |---|---|
 | `9000000001` | Admin. Also opens Django admin at http://localhost/admin. |
 | `9000000002` | Seller 1 (Ameerpet): an open listing (paper and cardboard) and a draft iron listing to add a photo to and publish |
-| `9000000003` | Seller 2 (Secunderabad): an open listing with restricted e-waste and an appliance |
+| `9000000003` | Seller 2 (Secunderabad): an open listing with restricted e-waste and an appliance, and an expired plastic listing to relist |
 | `9000000004` | Approved dealer who also sells (Ameerpet), with an open 350.5 kg bulk copper listing. Switches between the Selling and Buying views. |
 | `9000000005` | Dealer whose application is waiting for review (Kukatpally), with sample documents to approve in the admin |
 | `9000000006` | Approved dealer, authorised for e-waste (Begumpet) |
@@ -105,6 +105,8 @@ The seed also adds scrap categories: paper, cardboard, iron, copper, aluminium, 
   - A seller picks one or more categories, with an approximate weight in kg (up to `LISTING_MAX_WEIGHT_KG` per category, so bulk dealer loads fit) or a count for per-item goods. They add the pickup address and location, and save a draft.
   - They then add 1–6 photos (the phone camera opens directly) and publish. Publishing needs at least one photo.
   - Listings can be edited until an offer is accepted. After that, the declared weights are locked.
+  - An open listing with no accepted offer expires `LISTING_EXPIRY_DAYS` (7) after publishing. It leaves the dealer feed at once, and the scheduler marks it expired.
+  - The seller can relist an expired listing as a new draft with the same address and items. Fresh photos are needed to publish it.
   - Sellers only ever see their own listings. The exact address appears only on the owner's listing page, never in lists.
 - **What dealers see.**
   - An approved dealer's Buying view lists open listings inside their service area, nearest first, 20 at a time. PostGIS does the filtering in the database.

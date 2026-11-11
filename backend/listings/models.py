@@ -65,6 +65,10 @@ class Listing(models.Model):
     pincode = models.CharField(max_length=6)
     location = models.PointField(geography=True, srid=4326)
     published_at = models.DateTimeField(null=True, blank=True)
+    # Set on a draft made by relisting an expired listing.
+    relisted_from = models.ForeignKey(
+        "self", on_delete=models.SET_NULL, null=True, blank=True, related_name="relistings"
+    )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

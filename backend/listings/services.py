@@ -1,10 +1,14 @@
 """Seller listing rules: creating, editing and publishing."""
 
+from datetime import timedelta
+
+from django.conf import settings
 from django.contrib.gis.geos import Point
 from django.db import transaction
+from django.utils import timezone
 
 from listings.models import Listing, ListingItem, ListingStatus
-from listings.transitions import transition
+from listings.transitions import TransitionError, transition
 
 
 class ListingError(Exception):
@@ -13,6 +17,7 @@ class ListingError(Exception):
         "already_published": "This listing is already published.",
         "needs_items": "Add at least one category.",
         "needs_photo": "Add at least one photo before publishing.",
+        "not_expired": "Only expired listings can be relisted.",
     }
 
     def __init__(self, code):
@@ -81,3 +86,69 @@ def publish_listing(listing, actor):
             raise ListingError("needs_photo")
         transition(locked, ListingStatus.OPEN, actor)
     return locked
+
+
+# --- Expiry and relisting ------------------------------------------------------
+
+
+def expiry_cutoff(now=None):
+    """Open listings published at or before this moment have expired."""
+    return (now or timezone.now()) - timedelta(days=settings.LISTING_EXPIRY_DAYS)
+
+
+def expires_at(listing):
+    if listing.status != ListingStatus.OPEN or listing.published_at is None:
+        return None
+    return listing.published_at + timedelta(days=settings.LISTING_EXPIRY_DAYS)
+
+
+def expire_overdue_listings():
+    """Move overdue OPEN listings to EXPIRED as the system. Returns how many expired.
+
+    A listing whose status changes while this runs (for example an offer is
+    accepted) is skipped: the state machine re-checks each one under a lock.
+    """
+    overdue = Listing.objects.filter(
+        status=ListingStatus.OPEN, published_at__lte=expiry_cutoff()
+    ).values_list("pk", flat=True)
+    expired = 0
+    for pk in list(overdue):
+        try:
+            transition(Listing(pk=pk), ListingStatus.EXPIRED, None)
+        except TransitionError:
+            continue
+        expired += 1
+    return expired
+
+
+def relist(listing):
+    """Make a new DRAFT from an EXPIRED listing, with the same address and items.
+
+    Photos aren't copied: the seller adds fresh ones before publishing. Calling
+    this again returns the draft already made, so retries don't create duplicates.
+    """
+    with transaction.atomic():
+        source = Listing.objects.select_for_update().get(pk=listing.pk)
+        if source.status != ListingStatus.EXPIRED:
+            raise ListingError("not_expired")
+        existing = source.relistings.filter(status=ListingStatus.DRAFT).first()
+        if existing:
+            return existing, False
+        draft = Listing.objects.create(
+            seller=source.seller,
+            address_line=source.address_line,
+            locality=source.locality,
+            pincode=source.pincode,
+            location=source.location,
+            relisted_from=source,
+        )
+        ListingItem.objects.bulk_create(
+            ListingItem(
+                listing=draft,
+                category=item.category,
+                declared_weight_kg=item.declared_weight_kg,
+                declared_quantity=item.declared_quantity,
+            )
+            for item in source.items.all()
+        )
+    return draft, True

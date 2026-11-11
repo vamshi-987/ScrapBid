@@ -1,6 +1,12 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { createListing, publishListing, uploadListingPhoto, type Category } from "../api/listings";
+import {
+  createListing,
+  publishListing,
+  relistListing,
+  uploadListingPhoto,
+  type Category,
+} from "../api/listings";
 import { formatWeight, isValidWeight } from "../format/weight";
 import { buildItems, itemSummary } from "./items";
 
@@ -151,5 +157,21 @@ describe("itemSummary", () => {
         },
       ]),
     ).toBe("Paper 25 kg · Appliance 2 pcs");
+  });
+});
+
+describe("relistListing", () => {
+  it("posts to the relist endpoint and returns the draft", async () => {
+    const fetchMock = respondWith(json(201, { id: 9, status: "draft" }));
+
+    expect(await relistListing(5)).toEqual({ ok: true, listing: { id: 9, status: "draft" } });
+    expect(fetchMock.mock.calls[0][0]).toBe("/api/listings/5/relist");
+    expect(fetchMock.mock.calls[0][1].method).toBe("POST");
+  });
+
+  it("passes the server's code when the listing isn't expired", async () => {
+    respondWith(json(409, { code: "not_expired" }));
+
+    expect(await relistListing(5)).toEqual({ ok: false, reason: "not_expired" });
   });
 });

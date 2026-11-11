@@ -33,6 +33,8 @@ export type ListingPhoto = { id: number; url: string; width: number; height: num
 export type ListingSummary = {
   id: number;
   status: ListingStatus;
+  /** When an open listing expires if no offer is accepted; null otherwise. */
+  expires_at: string | null;
   locality: string;
   pincode: string;
   items: ListingItem[];
@@ -48,6 +50,7 @@ export type ListingDetail = ListingSummary & {
   longitude: number;
   photos: ListingPhoto[];
   is_editable: boolean;
+  relisted_from: number | null;
 };
 
 export type ItemInput =
@@ -119,6 +122,21 @@ export async function publishListing(
 async function errorCode(response: Response): Promise<string> {
   const body = await readJson<{ code?: unknown }>(response).catch(() => ({ code: undefined }));
   return typeof body.code === "string" ? body.code : "error";
+}
+
+/** Turns an expired listing into a new draft (the same draft if retried). */
+export async function relistListing(
+  id: number,
+): Promise<{ ok: true; listing: ListingDetail } | Failure> {
+  try {
+    const response = await postJson(`/api/listings/${id}/relist`);
+    if (response.ok) {
+      return { ok: true, listing: await readJson<ListingDetail>(response) };
+    }
+    return { ok: false, reason: await errorCode(response) };
+  } catch {
+    return { ok: false, reason: "error" };
+  }
 }
 
 export async function uploadListingPhoto(id: number, file: File): Promise<{ ok: true } | Failure> {
