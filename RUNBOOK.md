@@ -44,6 +44,14 @@ Expected output: `{"status":"ok","checks":{"database":"ok","storage":"ok"}}`. Th
 
    The log shows the number masked, for example `Login code for +91XXXXXX3210: 123456`.
 
+### Selling scrap
+
+1. Log in as a seller, for example `9000000002`. The home page shows **My listings**.
+2. Choose **Sell scrap**. Tick categories and enter a weight (or a count for appliances), fill in the address, choose **Use my location**, then **Save and add photos**.
+3. On the listing page, use **Add photo** (it opens the camera on a phone), then **Publish listing**.
+
+The seeded draft iron listing for `9000000002` is ready to have a photo added and be published.
+
 ### Applying as a dealer
 
 1. Log in with any account and choose **Become a dealer** on the home page (or open http://localhost/dealer).
@@ -188,6 +196,7 @@ All variables are in `.env.example` with safe local defaults. Never commit `.env
 | `PRESIGNED_URL_TTL_SECONDS` | `600` | How long a presigned photo link works |
 | `LISTING_PHOTO_MAX_BYTES` | `10485760` | Largest listing photo, in bytes (10 MB) |
 | `LISTING_MAX_PHOTOS` | `6` | Most photos per listing |
+| `LISTING_MAX_WEIGHT_KG` | `10000` | Largest declared weight for one category on a listing, in kg |
 | `MINIO_ROOT_USER`, `MINIO_ROOT_PASSWORD` | `scrapbid`, `scrapbid-secret` | Local only |
 | `MINIO_CONSOLE_PORT` | `9001` | Host port for the MinIO console |
 | `SCHEDULER_INTERVAL_SECONDS` | `300` | Seconds between scheduler runs. Must be positive. |
