@@ -3,6 +3,7 @@ import { Link } from "react-router";
 
 import type { Me } from "../api/auth";
 import { apiFetch } from "../api/client";
+import { MyListings } from "../listings/MyListings";
 import type { View } from "../session/views";
 import { strings } from "../strings";
 
@@ -41,10 +42,10 @@ export function HomePage({ me, view }: Props) {
           <p>
             {strings.session.loggedInAs} <strong>{me.phone}</strong>
           </p>
-          {view && (
+          {view === "buying" && (
             <>
-              <h2>{strings.shell.views[view]}</h2>
-              <p>{strings.shell.emptyView[view]}</p>
+              <h2>{strings.shell.views.buying}</h2>
+              <p>{strings.shell.emptyView.buying}</p>
             </>
           )}
           {!me.roles.includes("dealer") && (
@@ -59,6 +60,7 @@ export function HomePage({ me, view }: Props) {
           )}
         </section>
       )}
+      {me && view === "selling" && <MyListings />}
       {me === null && (
         <Link className="button" to="/login">
           {strings.session.logIn}

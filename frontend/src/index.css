@@ -219,3 +219,57 @@ button.link {
   justify-content: space-between;
   gap: 1rem;
 }
+
+.category-picker,
+.listing-list,
+.photo-grid {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.category-picker li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0;
+  border-top: 1px solid var(--border);
+}
+
+.category-picker li input:not([type="checkbox"]) {
+  flex-basis: 100%;
+}
+
+.listing-list li a {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 0;
+  border-top: 1px solid var(--border);
+  color: var(--text);
+  text-decoration: none;
+}
+
+.listing-list img,
+.no-photo {
+  width: 64px;
+  height: 48px;
+  flex-shrink: 0;
+  object-fit: cover;
+  border-radius: 0.375rem;
+  background: var(--border);
+}
+
+.photo-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.photo-grid img {
+  width: 100%;
+  height: auto;
+  border-radius: 0.375rem;
+}

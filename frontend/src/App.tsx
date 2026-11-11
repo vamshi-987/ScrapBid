@@ -5,7 +5,9 @@ import { ensureCsrfCookie, fetchMe, logout, type Me } from "./api/auth";
 import { AppShell } from "./components/AppShell";
 import { DealerPage } from "./pages/DealerPage";
 import { HomePage } from "./pages/HomePage";
+import { ListingPage } from "./pages/ListingPage";
 import { LoginPage } from "./pages/LoginPage";
+import { NewListingPage } from "./pages/NewListingPage";
 import { chooseView, rememberView, rememberedView, type View } from "./session/views";
 import { strings } from "./strings";
 
@@ -47,6 +49,8 @@ export function App() {
         <Route path="/" element={<HomePage me={me} view={view} />} />
         <Route path="/login" element={<LoginPage onLoggedIn={handleLoggedIn} />} />
         <Route path="/dealer" element={<DealerPage onApplied={refreshMe} />} />
+        <Route path="/listings/new" element={<NewListingPage />} />
+        <Route path="/listings/:id" element={<ListingPage />} />
         <Route
           path="*"
           element={

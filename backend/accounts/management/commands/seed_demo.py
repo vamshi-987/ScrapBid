@@ -1,17 +1,23 @@
+import io
 from datetime import timedelta
+from decimal import Decimal
 
 from django.conf import settings
 from django.contrib.gis.geos import Point
 from django.core.files.base import ContentFile
+from django.core.files.storage import default_storage
 from django.core.management.base import BaseCommand, CommandError
 from django.db import transaction
 from django.utils import timezone
+from PIL import Image
 
 from accounts.models import Role, User
 from accounts.phone import mask_phone
 from dealers.models import DealerProfile, DealerStatus, DocumentType, IdType
 from dealers.services import can_authorise_ewaste, review_dealer, store_document
-from listings.models import Category, PricingUnit
+from listings.models import Category, Listing, ListingStatus, PricingUnit
+from listings.photos import add_photo
+from listings.services import create_listing, publish_listing
 
 # Demo accounts for local testing. Listed in README.md; log in with DEV_FIXED_OTP.
 DEMO_USERS = [
@@ -125,6 +131,57 @@ DEMO_DEALERS = [
     },
 ]
 
+# Demo listings, keyed by seller phone + a marker in the address. Items are
+# (category name, weight in kg or None, quantity or None).
+DEMO_LISTINGS = [
+    {
+        "phone": "+919000000002",
+        "address_line": "Demo listing 1: 8-2-120, Ameerpet Main Road",
+        "locality": "Ameerpet",
+        "pincode": "500016",
+        "latitude": 17.4370,
+        "longitude": 78.4475,
+        "items": [("Paper", "25", None), ("Cardboard", "12.5", None)],
+        "photos": 2,
+        "status": ListingStatus.OPEN,
+    },
+    {
+        "phone": "+919000000002",
+        "address_line": "Demo listing 2: 8-2-120, Ameerpet Main Road",
+        "locality": "Ameerpet",
+        "pincode": "500016",
+        "latitude": 17.4370,
+        "longitude": 78.4475,
+        "items": [("Iron", "40", None)],
+        "photos": 0,  # add a photo in the app, then publish
+        "status": ListingStatus.DRAFT,
+    },
+    {
+        "phone": "+919000000003",
+        "address_line": "Demo listing 3: 1-7-80, Secunderabad Market Road",
+        "locality": "Secunderabad",
+        "pincode": "500003",
+        "latitude": 17.4405,
+        "longitude": 78.4990,
+        "items": [("E-waste", "8", None), ("Appliance", None, 2)],
+        "photos": 1,
+        "status": ListingStatus.OPEN,
+    },
+    {
+        "phone": "+919000000004",
+        "address_line": "Demo listing 4: Dual Role Traders yard, Ameerpet",
+        "locality": "Ameerpet",
+        "pincode": "500016",
+        "latitude": 17.4380,
+        "longitude": 78.4490,
+        "items": [("Copper", "350.5", None)],
+        "photos": 1,
+        "status": ListingStatus.OPEN,
+    },
+]
+
+PHOTO_COLOURS = ["#8d6e63", "#78909c", "#a1887f"]
+
 # A tiny valid PDF used as every demo verification document.
 DEMO_PDF = b"%PDF-1.4\n% ScrapBid demo document\n%%EOF\n"
 DEMO_DOCUMENT_TYPES = [
@@ -169,6 +226,10 @@ class Command(BaseCommand):
                 self._seed_dealer(spec)
             self.stdout.write(f"Dealer profiles: {len(DEMO_DEALERS)}")
 
+            for spec in DEMO_LISTINGS:
+                self._seed_listing(spec)
+            self.stdout.write(f"Listings: {len(DEMO_LISTINGS)}")
+
         self.stdout.write(self.style.SUCCESS("Demo data is ready."))
 
     def _seed_dealer(self, spec):
@@ -202,3 +263,40 @@ class Command(BaseCommand):
             review_dealer(profile, DealerStatus.APPROVED, admin_user)
         if ewaste and can_authorise_ewaste(profile):
             DealerProfile.objects.filter(pk=profile.pk).update(ewaste_authorised=True)
+
+    def _seed_listing(self, spec):
+        """Keep a demo listing that is already in its demo state; otherwise rebuild it."""
+        seller = User.objects.get(phone=spec["phone"])
+        existing = Listing.objects.filter(seller=seller, address_line=spec["address_line"]).first()
+        if existing:
+            if existing.status == spec["status"] and existing.photos.count() == spec["photos"]:
+                return
+            for photo in existing.photos.all():
+                default_storage.delete(photo.file.name)
+            existing.delete()
+
+        categories = {c.name: c for c in Category.objects.all()}
+        listing = create_listing(
+            seller,
+            {
+                **{
+                    k: spec[k]
+                    for k in ("address_line", "locality", "pincode", "latitude", "longitude")
+                },
+                "items": [
+                    {
+                        "category": categories[name],
+                        "declared_weight_kg": Decimal(weight) if weight else None,
+                        "declared_quantity": quantity,
+                    }
+                    for name, weight, quantity in spec["items"]
+                ],
+            },
+        )
+        for index in range(spec["photos"]):
+            buffer = io.BytesIO()
+            colour = PHOTO_COLOURS[index % len(PHOTO_COLOURS)]
+            Image.new("RGB", (800, 600), colour).save(buffer, format="JPEG")
+            add_photo(listing, ContentFile(buffer.getvalue(), name="demo.jpg"))
+        if spec["status"] == ListingStatus.OPEN:
+            publish_listing(listing, seller)

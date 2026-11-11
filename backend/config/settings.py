@@ -57,6 +57,8 @@ DEALER_DOCUMENT_MAX_BYTES = env_positive_int("DEALER_DOCUMENT_MAX_BYTES", 10 * 1
 
 LISTING_PHOTO_MAX_BYTES = env_positive_int("LISTING_PHOTO_MAX_BYTES", 10 * 1024 * 1024)
 LISTING_MAX_PHOTOS = env_positive_int("LISTING_MAX_PHOTOS", 6)
+# Largest declared weight for one category on a listing, in kg (bulk dealer loads fit).
+LISTING_MAX_WEIGHT_KG = env_positive_int("LISTING_MAX_WEIGHT_KG", 10_000)
 
 if DJANGO_ENV == "production":
     _problems = production_problems(

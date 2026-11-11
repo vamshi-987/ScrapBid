@@ -51,15 +51,15 @@ Run `docker compose exec backend python manage.py seed_demo`, then log in at htt
 | Phone | Account |
 |---|---|
 | `9000000001` | Admin. Also opens Django admin at http://localhost/admin. |
-| `9000000002` | Seller 1 |
-| `9000000003` | Seller 2 |
-| `9000000004` | Approved dealer who also sells (Ameerpet). Switches between the Selling and Buying views. |
+| `9000000002` | Seller 1 (Ameerpet): an open listing (paper and cardboard) and a draft iron listing to add a photo to and publish |
+| `9000000003` | Seller 2 (Secunderabad): an open listing with restricted e-waste and an appliance |
+| `9000000004` | Approved dealer who also sells (Ameerpet), with an open 350.5 kg bulk copper listing. Switches between the Selling and Buying views. |
 | `9000000005` | Dealer whose application is waiting for review (Kukatpally), with sample documents to approve in the admin |
 | `9000000006` | Approved dealer, authorised for e-waste (Begumpet) |
 | `9000000007` | Approved dealer (Secunderabad) |
 | `9000000008` | Approved dealer out of range of the Hyderabad sellers (Warangal) |
 
-The seed also adds scrap categories: paper, cardboard, iron, copper, aluminium, plastic, e-waste and batteries (the last two restricted), and appliance (priced per item). More demo data, such as dealers and listings, is added as features land. Any other valid Indian mobile number also works and gets a new seller account on first login.
+The seed also adds scrap categories: paper, cardboard, iron, copper, aluminium, plastic, e-waste and batteries (the last two restricted), and appliance (priced per item). It also adds the listings above, with photos. More demo data, such as offers, is added as features land. Any other valid Indian mobile number also works and gets a new seller account on first login.
 
 ## Key decisions
 
@@ -101,6 +101,11 @@ The seed also adds scrap categories: paper, cardboard, iron, copper, aluminium, 
   - Every change locks the listing row, so two changes can't both succeed.
   - Every change writes one row to an append-only audit log in the same transaction (who, when, from, to, reason). Audit rows can't be edited or deleted, and the admin shows them read-only.
   - A test fails if any other code sets a listing's status directly.
+- **Selling scrap.**
+  - A seller picks one or more categories, with an approximate weight in kg (up to `LISTING_MAX_WEIGHT_KG` per category, so bulk dealer loads fit) or a count for per-item goods. They add the pickup address and location, and save a draft.
+  - They then add 1–6 photos (the phone camera opens directly) and publish. Publishing needs at least one photo.
+  - Listings can be edited until an offer is accepted. After that, the declared weights are locked.
+  - Sellers only ever see their own listings. The exact address appears only on the owner's listing page, never in lists.
 - **Photos are cleaned and private.**
   - Listing photos (JPG, PNG or WebP, up to 10 MB, up to 6 per listing) are decoded to check they're real images.
   - They're rotated upright, shrunk to at most 2048 px, and re-encoded from pixels only. All EXIF, GPS and other metadata is removed. Dealer document photos go through the same cleaning.
