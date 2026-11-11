@@ -1,21 +1,43 @@
 import { useEffect, useState } from "react";
 
-import { fetchListingOffers, type SellerOffer } from "../api/offers";
+import { acceptOffer, fetchListingOffers, type SellerOffer } from "../api/offers";
+import type { ListingStatus } from "../api/listings";
 import { formatINR } from "../format/money";
 import { strings } from "../strings";
 import { offerSummary } from "./summary";
 
 const t = strings.offers;
+type ErrorKey = keyof typeof t.acceptErrors;
 
-/** The offers on the seller's own listing, highest estimate first. */
-export function SellerOffers({ listingId }: { listingId: number }) {
+type Props = { listingId: number; listingStatus: ListingStatus; onAccepted: () => void };
+
+/** The offers on the seller's own listing: accepted first, then highest estimate. */
+export function SellerOffers({ listingId, listingStatus, onAccepted }: Props) {
   const [offers, setOffers] = useState<SellerOffer[] | null>(null);
+  const [busy, setBusy] = useState<number | null>(null);
+  const [error, setError] = useState<ErrorKey | null>(null);
 
   useEffect(() => {
     fetchListingOffers(listingId).then(setOffers);
-  }, [listingId]);
+  }, [listingId, listingStatus]);
+
+  async function accept(offer: SellerOffer) {
+    const summary = offerSummary(offer);
+    if (
+      !window.confirm(`${t.confirmAccept} ${summary.title}: ${summary.amount}. ${t.estimateNote}`)
+    ) {
+      return;
+    }
+    setBusy(offer.id);
+    setError(null);
+    const result = await acceptOffer(offer.id);
+    setBusy(null);
+    if (result.ok) onAccepted();
+    else setError(result.reason in t.acceptErrors ? (result.reason as ErrorKey) : "error");
+  }
 
   if (offers === null) return null;
+  const canAccept = listingStatus === "open";
 
   return (
     <section className="card">
@@ -26,10 +48,12 @@ export function SellerOffers({ listingId }: { listingId: number }) {
       <ul className="offer-list">
         {offers.map((offer) => {
           const summary = offerSummary(offer);
+          const accepted = offer.status === "accepted";
           return (
-            <li key={offer.id} className={summary.selectable ? undefined : "muted"}>
+            <li key={offer.id} className={summary.selectable || accepted ? undefined : "muted"}>
               <p>
                 <strong>{summary.amount}</strong> · {summary.title}
+                {accepted && <strong className="status-ok"> · {t.statuses.accepted}</strong>}
                 <br />
                 <small>{summary.estimateNote}</small>
               </p>
@@ -42,11 +66,21 @@ export function SellerOffers({ listingId }: { listingId: number }) {
                   </li>
                 ))}
               </ul>
-              <small>{summary.validity}</small>
+              {!accepted && <small>{summary.validity}</small>}
+              {canAccept && summary.selectable && (
+                <button type="button" onClick={() => accept(offer)} disabled={busy !== null}>
+                  {busy === offer.id ? t.accepting : t.accept}
+                </button>
+              )}
             </li>
           );
         })}
       </ul>
+      {error && (
+        <p className="status-error" role="alert">
+          {t.acceptErrors[error]}
+        </p>
+      )}
     </section>
   );
 }

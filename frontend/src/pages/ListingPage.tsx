@@ -121,7 +121,9 @@ export function ListingPage() {
         )}
       </section>
 
-      {listing.status !== "draft" && <SellerOffers listingId={listing.id} />}
+      {listing.status !== "draft" && (
+        <SellerOffers listingId={listing.id} listingStatus={listing.status} onAccepted={reload} />
+      )}
 
       <section className="card">
         <h2>

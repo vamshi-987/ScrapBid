@@ -99,3 +99,27 @@ describe("offer API", () => {
     expect(await makeOffer(9, rates)).toEqual({ ok: false, reason });
   });
 });
+
+describe("acceptOffer", () => {
+  it("posts to the accept endpoint with the CSRF token", async () => {
+    const { acceptOffer } = await import("../api/offers");
+    const fetchMock = respondWith(json(201, { id: 4, offer: 3 }));
+
+    expect(await acceptOffer(3)).toEqual({ ok: true, order: { id: 4, offer: 3 } });
+    const [path, init] = fetchMock.mock.calls[0];
+    expect(path).toBe("/api/offers/3/accept");
+    expect(init.method).toBe("POST");
+    expect((init.headers as Headers).get("X-CSRFToken")).toBe("tok123");
+  });
+
+  it.each([
+    [{ code: "not_open" }, "not_open"],
+    [{ code: "not_live" }, "not_live"],
+    [{ code: "dealer_unavailable" }, "dealer_unavailable"],
+  ])("passes the server's code on 409 (%j)", async (body, reason) => {
+    const { acceptOffer } = await import("../api/offers");
+    respondWith(json(409, body));
+
+    expect(await acceptOffer(3)).toEqual({ ok: false, reason });
+  });
+});

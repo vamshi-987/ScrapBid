@@ -13,7 +13,11 @@ import { strings } from "../strings";
 const t = strings.notifications;
 
 function linkFor(notification: AppNotification): string {
-  return notification.data.listing_id ? `/listings/${notification.data.listing_id}` : "/";
+  // Sellers go to their listing; dealers see accepted offers under My offers on the home page.
+  if (notification.kind === "new_offer" && notification.data.listing_id) {
+    return `/listings/${notification.data.listing_id}`;
+  }
+  return "/";
 }
 
 export function NotificationsPage() {

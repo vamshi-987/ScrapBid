@@ -218,6 +218,15 @@ export const en = {
     noOffersYet: "No offers yet. Verified dealers nearby can see your listing.",
     perKg: "/kg",
     perItem: "/item",
+    accept: "Accept this offer",
+    accepting: "Accepting…",
+    confirmAccept: "Accept the offer from",
+    acceptErrors: {
+      not_open: "This listing has already accepted an offer or is closed.",
+      not_live: "This offer has expired or been withdrawn. Choose another.",
+      dealer_unavailable: "This dealer can no longer take this pickup. Choose another offer.",
+      error: "Something went wrong. Check your connection and try again.",
+    },
     validUntil: "Valid until",
     send: "Send offer",
     update: "Update offer",
@@ -248,6 +257,7 @@ export const en = {
     markAllRead: "Mark all as read",
     kinds: {
       new_offer: "New offer on your listing",
+      offer_accepted: "Your offer was accepted",
     },
   },
   notFound: "Page not found",
