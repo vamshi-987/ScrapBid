@@ -117,6 +117,7 @@ The seed also adds scrap categories: paper, cardboard, iron, copper, aluminium, 
   - A dealer offers a rate per category: ₹ per kg, or ₹ per item for appliances. The server works out the estimate: each line is weight × rate (or count × rate), rounded half up to the paisa, and the lines are added up. Money is always integer paise, and any total sent by the app is ignored.
   - Offers are labelled as estimates everywhere: the final amount depends on the weight measured at pickup.
   - A dealer can have one active offer per listing, enforced by the database. They can edit it (which restarts its validity) or withdraw it while the listing is open.
+  - The seller compares offers on their listing page, highest estimate first. They see each dealer's business name and area, but no contact details until they accept an offer. Only offers from dealers who are still approved, hold a valid scale certificate and still cover the pickup address are shown. Offers past their time show as expired.
   - Offers expire after `OFFER_EXPIRY_HOURS` (24), because rates change daily. Once a listing has an active offer, the seller can't edit it. Offers close when the listing expires.
 - **In-app notifications** (no SMS, WhatsApp or push in the MVP).
   - Sellers are notified of each new offer. The header shows an unread count, refreshed every 30 seconds while the tab is open.
