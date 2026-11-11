@@ -50,6 +50,8 @@ Expected output: `{"status":"ok","checks":{"database":"ok","storage":"ok"}}`. Th
 2. Choose **Sell scrap**. Tick categories and enter a weight (or a count for appliances), fill in the address, choose **Use my location**, then **Save and add photos**.
 3. On the listing page, use **Add photo** (it opens the camera on a phone), then **Publish listing**.
 
+To compare offers, open an open listing. The **Offers** section lists them, highest estimate first. Seller 1's paper listing has 3 seeded offers.
+
 The seeded draft iron listing for `9000000002` is ready to have a photo added and be published. `9000000003` has an expired listing: open it and choose **Relist**.
 
 ### Browsing listings as a dealer

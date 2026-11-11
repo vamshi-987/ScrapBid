@@ -130,6 +130,19 @@ class ListingPhotoDetailView(APIView):
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 
+class ListingOffersForSellerView(APIView):
+    """The offers on the seller's own listing, for comparing."""
+
+    permission_classes = [HasRole(Role.SELLER)]
+
+    def get(self, request, listing_id):
+        from offers.serializers import SellerOfferSerializer
+        from offers.services import offers_for_seller
+
+        listing = own_listing(request, listing_id)
+        return Response(SellerOfferSerializer(offers_for_seller(listing), many=True).data)
+
+
 class ListingRelistView(APIView):
     """Turn an expired listing into a new draft. Safe to retry."""
 

@@ -11,7 +11,7 @@ from rest_framework.test import APIClient
 
 from accounts.models import Role, User
 from dealers.models import DealerProfile, DealerStatus, IdType
-from listings.models import Category, Listing, ListingItem, ListingStatus, PricingUnit
+from listings.models import Listing, ListingItem, ListingStatus
 from listings.services import expire_overdue_listings, is_editable
 from offers.models import Offer, OfferRate, OfferStatus
 from offers.pricing import estimated_total_paise, line_paise
@@ -62,15 +62,6 @@ def test_total_is_the_sum_of_rounded_lines():
 
 
 # --- Fixtures --------------------------------------------------------------
-
-
-@pytest.fixture
-def categories(db):
-    return {
-        "paper": Category.objects.create(name="Paper"),
-        "fridge": Category.objects.create(name="Appliance", pricing_unit=PricingUnit.PER_ITEM),
-        "ewaste": Category.objects.create(name="E-waste", is_restricted=True),
-    }
 
 
 def make_dealer(

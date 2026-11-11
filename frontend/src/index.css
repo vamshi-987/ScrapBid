@@ -315,3 +315,18 @@ button.link {
   content: "● ";
   color: var(--ok);
 }
+
+.offer-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.offer-list > li {
+  padding: 0.75rem 0;
+  border-top: 1px solid var(--border);
+}
+
+.offer-list > li.muted {
+  opacity: 0.6;
+}
