@@ -4,6 +4,7 @@ import { Link } from "react-router";
 import type { Me } from "../api/auth";
 import { apiFetch } from "../api/client";
 import { MyListings } from "../listings/MyListings";
+import { NearbyListings } from "../listings/NearbyListings";
 import type { View } from "../session/views";
 import { strings } from "../strings";
 
@@ -42,12 +43,6 @@ export function HomePage({ me, view }: Props) {
           <p>
             {strings.session.loggedInAs} <strong>{me.phone}</strong>
           </p>
-          {view === "buying" && (
-            <>
-              <h2>{strings.shell.views.buying}</h2>
-              <p>{strings.shell.emptyView.buying}</p>
-            </>
-          )}
           {!me.roles.includes("dealer") && (
             <Link className="button secondary" to="/dealer">
               {strings.dealer.becomeDealer}
@@ -61,6 +56,7 @@ export function HomePage({ me, view }: Props) {
         </section>
       )}
       {me && view === "selling" && <MyListings />}
+      {me && view === "buying" && <NearbyListings />}
       {me === null && (
         <Link className="button" to="/login">
           {strings.session.logIn}

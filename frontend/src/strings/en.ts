@@ -22,9 +22,6 @@ export const en = {
     admin: "Admin",
     viewSwitchLabel: "Choose a view",
     views: { selling: "Selling", buying: "Buying" },
-    emptyView: {
-      buying: "Listings near you will appear here.",
-    },
   },
   login: {
     title: "Log in",
@@ -189,6 +186,18 @@ export const en = {
       too_many_pixels: "That photo's resolution is too high.",
       error: "Something went wrong. Check your connection and try again.",
     },
+  },
+  buying: {
+    nearby: "Listings near you",
+    none: "No open listings in your service area right now.",
+    notApproved:
+      "Listings appear once your dealer account is approved and your scale certificate is valid.",
+    error: "Couldn't load listings. Check your connection and try again.",
+    more: "Show more",
+    area: "Area",
+    addressLater: "The exact address is shared only after your offer is accepted.",
+    listedAt: "Listed",
+    approx: "approx.",
   },
   notFound: "Page not found",
 } as const;

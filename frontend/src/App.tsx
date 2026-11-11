@@ -3,6 +3,7 @@ import { Route, Routes } from "react-router";
 
 import { ensureCsrfCookie, fetchMe, logout, type Me } from "./api/auth";
 import { AppShell } from "./components/AppShell";
+import { DealerListingPage } from "./pages/DealerListingPage";
 import { DealerPage } from "./pages/DealerPage";
 import { HomePage } from "./pages/HomePage";
 import { ListingPage } from "./pages/ListingPage";
@@ -51,6 +52,7 @@ export function App() {
         <Route path="/dealer" element={<DealerPage onApplied={refreshMe} />} />
         <Route path="/listings/new" element={<NewListingPage />} />
         <Route path="/listings/:id" element={<ListingPage />} />
+        <Route path="/buy/listings/:id" element={<DealerListingPage />} />
         <Route
           path="*"
           element={
