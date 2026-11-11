@@ -122,7 +122,7 @@ The seed also adds scrap categories: paper, cardboard, iron, copper, aluminium, 
     - Accepting creates an order with a snapshot of the declared amounts and agreed rates. Later rate edits can't change it.
     - Every other offer is marked rejected ("another offer was accepted"), so it can come back if that dealer cancels. The accepted dealer is notified.
     - Only live offers from dealers who are still eligible can be accepted.
-  - Offers expire after `OFFER_EXPIRY_HOURS` (24), because rates change daily. Once a listing has an active offer, the seller can't edit it. Offers close when the listing expires.
+  - Offers expire after `OFFER_EXPIRY_HOURS` (24), because rates change daily. An offer past its time can't be accepted and stops locking the listing straight away; the scheduler then marks it expired. Once a listing has an active offer, the seller can't edit it. Offers close when the listing expires.
 - **In-app notifications** (no SMS, WhatsApp or push in the MVP).
   - Sellers are notified of each new offer. The header shows an unread count, refreshed every 30 seconds while the tab is open.
   - Notifications store only the kind and record IDs. The message text comes from the app's strings (ready for other languages), and no personal data is copied into them.
