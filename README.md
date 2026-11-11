@@ -106,6 +106,11 @@ The seed also adds scrap categories: paper, cardboard, iron, copper, aluminium, 
   - They then add 1–6 photos (the phone camera opens directly) and publish. Publishing needs at least one photo.
   - Listings can be edited until an offer is accepted. After that, the declared weights are locked.
   - Sellers only ever see their own listings. The exact address appears only on the owner's listing page, never in lists.
+- **What dealers see.**
+  - An approved dealer's Buying view lists open listings inside their service area, nearest first, 20 at a time. PostGIS does the filtering in the database.
+  - Dealers see the locality, pincode, items and photos. The exact address, coordinates, distance and anything about the seller stay hidden until an offer is accepted.
+  - Dealers never see their own listings. A listing with any restricted category (e-waste, batteries) appears only to dealers authorised for e-waste.
+  - Dealers whose scale certificate has expired lose access until they're re-approved with a valid certificate.
 - **Photos are cleaned and private.**
   - Listing photos (JPG, PNG or WebP, up to 10 MB, up to 6 per listing) are decoded to check they're real images.
   - They're rotated upright, shrunk to at most 2048 px, and re-encoded from pixels only. All EXIF, GPS and other metadata is removed. Dealer document photos go through the same cleaning.

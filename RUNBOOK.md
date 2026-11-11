@@ -52,6 +52,20 @@ Expected output: `{"status":"ok","checks":{"database":"ok","storage":"ok"}}`. Th
 
 The seeded draft iron listing for `9000000002` is ready to have a photo added and be published.
 
+### Browsing listings as a dealer
+
+Log in as an approved dealer and open the Buying view. Dual-role users switch views at the top of the page.
+
+| Dealer | Sees |
+|---|---|
+| `9000000006` Begumpet, e-waste authorised | 3 listings, including the e-waste one |
+| `9000000007` Secunderabad | 2 listings (e-waste hidden) |
+| `9000000004` dual-role, Ameerpet | 1 listing (its own and the e-waste one hidden) |
+| `9000000008` Warangal | none (out of range) |
+| `9000000005` pending | a "not approved yet" message |
+
+To see how the service area works, change a dealer's location with DevTools Sensors, or edit it while pending. Then compare what each one sees.
+
 ### Applying as a dealer
 
 1. Log in with any account and choose **Become a dealer** on the home page (or open http://localhost/dealer).

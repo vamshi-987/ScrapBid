@@ -170,3 +170,17 @@ class ListingDetailSerializer(ListingSummarySerializer):
 
     def get_is_editable(self, listing):
         return is_editable(listing)
+
+
+class DealerListingSerializer(serializers.ModelSerializer):
+    """What a dealer sees before an offer is accepted: approximate area only.
+
+    No exact address, coordinates, distance or anything about the seller.
+    """
+
+    items = ListingItemSerializer(many=True)
+    photos = ListingPhotoSerializer(many=True)
+
+    class Meta:
+        model = Listing
+        fields = ["id", "locality", "pincode", "items", "photos", "published_at"]
