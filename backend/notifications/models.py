@@ -4,6 +4,7 @@ from django.db import models
 
 class NotificationKind(models.TextChoices):
     NEW_OFFER = "new_offer", "New offer on your listing"
+    OFFER_ACCEPTED = "offer_accepted", "Your offer was accepted"
 
 
 class Notification(models.Model):

@@ -133,7 +133,8 @@ def close_active_offers(listing):
 def offers_for_seller(listing):
     """Offers the listing's seller may compare: only from dealers who are still approved,
     hold a valid scale certificate and whose service area covers the pickup address.
-    Live offers first, highest estimate first; withdrawn and rejected offers left out."""
+    The accepted offer first, then live offers by highest estimate; withdrawn and
+    rejected offers left out."""
     from django.contrib.gis.db.models.functions import Distance
     from django.db.models import F
 
@@ -156,6 +157,6 @@ def offers_for_seller(listing):
     def sort_key(offer):
         rates = {rate.category_id: rate.rate_paise for rate in offer.rates.all()}
         total = estimated_total_paise(list(offer.listing.items.all()), rates)
-        return (not offer.is_live, -total, offer.pk)
+        return (offer.status != OfferStatus.ACCEPTED, not offer.is_live, -total, offer.pk)
 
     return sorted(offers, key=sort_key)
