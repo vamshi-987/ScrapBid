@@ -12,6 +12,8 @@ from django.utils import timezone
 
 from listings.feed import visible_to_dealer
 from listings.models import Listing, ListingStatus, PricingUnit
+from notifications.models import NotificationKind
+from notifications.services import notify
 from offers.models import Offer, OfferRate, OfferStatus
 
 # Sanity caps that catch typing mistakes (₹10,000 per kg, ₹1,00,000 per item).
@@ -85,6 +87,9 @@ def create_offer(dealer, listing_id, rates):
                 raise OfferError("already_offered")
             offer = Offer.objects.create(listing=listing, dealer=dealer, expires_at=_new_expiry())
             _set_rates(offer, rates)
+            notify(
+                listing.seller, NotificationKind.NEW_OFFER, listing_id=listing.pk, offer_id=offer.pk
+            )
     except IntegrityError:
         # Two requests raced past the check: the database constraint caught it.
         raise OfferError("already_offered") from None
