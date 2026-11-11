@@ -160,3 +160,15 @@ def offers_for_seller(listing):
         return (offer.status != OfferStatus.ACCEPTED, not offer.is_live, -total, offer.pk)
 
     return sorted(offers, key=sort_key)
+
+
+def expire_due_offers():
+    """Mark ACTIVE offers past their expiry as EXPIRED. Returns how many changed.
+
+    Acceptance checks the time itself, so this only tidies up statuses; an offer
+    past its time is never accepted even if this hasn't run yet.
+    """
+    now = timezone.now()
+    return Offer.objects.filter(status=OfferStatus.ACTIVE, expires_at__lte=now).update(
+        status=OfferStatus.EXPIRED, updated_at=now
+    )

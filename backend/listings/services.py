@@ -27,12 +27,11 @@ class ListingError(Exception):
 
 def is_editable(listing):
     """Sellers may change a listing (details, items, photos) only while it has no
-    active offer: dealers priced what they saw."""
+    live offer: dealers priced what they saw. An offer past its time doesn't count."""
     if listing.status == ListingStatus.DRAFT:
         return True
-    return (
-        listing.status == ListingStatus.OPEN and not listing.offers.filter(status="active").exists()
-    )
+    live_offers = listing.offers.filter(status="active", expires_at__gt=timezone.now())
+    return listing.status == ListingStatus.OPEN and not live_offers.exists()
 
 
 def _set_fields(listing, data):
