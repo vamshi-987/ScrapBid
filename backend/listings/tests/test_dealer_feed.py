@@ -74,6 +74,8 @@ def make_listing(
         locality="Ameerpet",
         pincode="500016",
         location=Point(at[1], at[0], srid=4326),
+        # Published listings always have a publish time (the state machine sets it).
+        published_at=None if status == ListingStatus.DRAFT else timezone.now(),
     )
     ListingItem.objects.create(
         listing=listing, category=categories["paper"], declared_weight_kg=Decimal("20")

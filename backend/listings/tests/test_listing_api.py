@@ -317,10 +317,13 @@ def test_seed_demo_listings(django_capture_on_commit_callbacks):
 
     assert sorted(Listing.objects.values_list("id", flat=True)) == first_ids
     statuses = sorted(Listing.objects.values_list("status", flat=True))
-    assert statuses == ["draft", "open", "open", "open"]
+    assert statuses == ["draft", "expired", "open", "open", "open"]
     open_listings = Listing.objects.filter(status=ListingStatus.OPEN)
     assert all(listing.photos.exists() for listing in open_listings)
-    assert AuditLog.objects.filter(entity_type="listing", to_status="open").count() == 3
+    assert AuditLog.objects.filter(entity_type="listing", to_status="open").count() == 4
+    assert (
+        AuditLog.objects.filter(entity_type="listing", to_status="expired", actor=None).count() == 1
+    )
     bulk = Listing.objects.get(seller__phone="+919000000004")
     assert bulk.items.get().declared_weight_kg == Decimal("350.500")
     restricted = Listing.objects.filter(items__category__is_restricted=True)

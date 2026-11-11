@@ -4,7 +4,7 @@ from rest_framework import serializers
 from config.storage import presigned_url
 from dealers.validation import PINCODE, is_in_india
 from listings.models import Category, Listing, ListingItem, ListingPhoto, PricingUnit
-from listings.services import is_editable
+from listings.services import expires_at, is_editable
 
 
 class CategorySerializer(serializers.ModelSerializer):
@@ -121,12 +121,14 @@ class ListingSummarySerializer(serializers.ModelSerializer):
     items = ListingItemSerializer(many=True)
     photo_count = serializers.SerializerMethodField()
     cover_url = serializers.SerializerMethodField()
+    expires_at = serializers.SerializerMethodField()
 
     class Meta:
         model = Listing
         fields = [
             "id",
             "status",
+            "expires_at",
             "locality",
             "pincode",
             "items",
@@ -135,6 +137,10 @@ class ListingSummarySerializer(serializers.ModelSerializer):
             "created_at",
             "published_at",
         ]
+
+    def get_expires_at(self, listing):
+        moment = expires_at(listing)
+        return serializers.DateTimeField().to_representation(moment) if moment else None
 
     def get_photo_count(self, listing):
         return len(listing.photos.all())
@@ -160,6 +166,7 @@ class ListingDetailSerializer(ListingSummarySerializer):
             "longitude",
             "photos",
             "is_editable",
+            "relisted_from",
         ]
 
     def get_latitude(self, listing):

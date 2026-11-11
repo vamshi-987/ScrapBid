@@ -18,6 +18,7 @@ from dealers.services import can_authorise_ewaste, review_dealer, store_document
 from listings.models import Category, Listing, ListingStatus, PricingUnit
 from listings.photos import add_photo
 from listings.services import create_listing, publish_listing
+from listings.transitions import transition
 
 # Demo accounts for local testing. Listed in README.md; log in with DEV_FIXED_OTP.
 DEMO_USERS = [
@@ -178,6 +179,17 @@ DEMO_LISTINGS = [
         "photos": 1,
         "status": ListingStatus.OPEN,
     },
+    {
+        "phone": "+919000000003",
+        "address_line": "Demo listing 5: 1-7-80, Secunderabad Market Road",
+        "locality": "Secunderabad",
+        "pincode": "500003",
+        "latitude": 17.4405,
+        "longitude": 78.4990,
+        "items": [("Plastic", "15", None)],
+        "photos": 1,
+        "status": ListingStatus.EXPIRED,  # relist it in the app
+    },
 ]
 
 PHOTO_COLOURS = ["#8d6e63", "#78909c", "#a1887f"]
@@ -298,5 +310,10 @@ class Command(BaseCommand):
             colour = PHOTO_COLOURS[index % len(PHOTO_COLOURS)]
             Image.new("RGB", (800, 600), colour).save(buffer, format="JPEG")
             add_photo(listing, ContentFile(buffer.getvalue(), name="demo.jpg"))
-        if spec["status"] == ListingStatus.OPEN:
+        if spec["status"] in (ListingStatus.OPEN, ListingStatus.EXPIRED):
             publish_listing(listing, seller)
+        if spec["status"] == ListingStatus.EXPIRED:
+            # Published long enough ago to have expired, then expired by the system.
+            published = timezone.now() - timedelta(days=settings.LISTING_EXPIRY_DAYS + 1)
+            Listing.objects.filter(pk=listing.pk).update(published_at=published)
+            transition(listing, ListingStatus.EXPIRED, None)

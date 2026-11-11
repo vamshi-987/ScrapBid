@@ -130,6 +130,23 @@ class ListingPhotoDetailView(APIView):
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 
+class ListingRelistView(APIView):
+    """Turn an expired listing into a new draft. Safe to retry."""
+
+    permission_classes = [HasRole(Role.SELLER)]
+
+    def post(self, request, listing_id):
+        listing = own_listing(request, listing_id)
+        try:
+            draft, created = services.relist(listing)
+        except services.ListingError as error:
+            return listing_error(error)
+        return Response(
+            ListingDetailSerializer(own_listing(request, draft.pk)).data,
+            status=status.HTTP_201_CREATED if created else status.HTTP_200_OK,
+        )
+
+
 class DealerFeedPagination(PageNumberPagination):
     page_size = 20
 
