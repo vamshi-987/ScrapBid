@@ -178,7 +178,16 @@ def test_feed_shows_only_the_approximate_area(categories):
     listing = response.json()["results"][0]
     content = response.content.decode()
 
-    assert set(listing) == {"id", "locality", "pincode", "items", "photos", "published_at"}
+    assert set(listing) == {
+        "id",
+        "locality",
+        "pincode",
+        "items",
+        "photos",
+        "published_at",
+        "my_offer",
+    }
+    assert listing["my_offer"] is None
     assert listing["locality"] == "Ameerpet" and listing["pincode"] == "500016"
     for secret in ("Secret Street", "9876543210", str(SHOP[0]), "distance", "seller"):
         assert secret not in content
@@ -241,7 +250,7 @@ def test_query_count_does_not_grow_with_the_number_of_listings(
     client = client_for(make_dealer())
     for i in range(3):
         make_listing(categories, at=north_of_shop(i + 1), restricted=False)
-    with django_assert_max_num_queries(10) as few:
+    with django_assert_max_num_queries(12) as few:
         client.get(FEED)
 
     for i in range(12):

@@ -3,7 +3,7 @@ and restricted categories only for authorised dealers. Filtered in the database.
 
 from django.contrib.gis.db.models.functions import Distance
 from django.contrib.gis.measure import D
-from django.db.models import Exists, OuterRef
+from django.db.models import Exists, OuterRef, Prefetch
 
 from listings.models import Listing, ListingItem, ListingStatus
 from listings.services import expiry_cutoff
@@ -27,4 +27,12 @@ def visible_to_dealer(profile):
             listing=OuterRef("pk"), category__is_restricted=True
         )
         listings = listings.exclude(Exists(has_restricted))
-    return listings.prefetch_related("items__category", "photos")
+    from offers.models import Offer, OfferStatus
+
+    # The dealer's own active offers only (never other dealers'), fetched in one query.
+    own_offers = Offer.objects.filter(dealer=profile, status=OfferStatus.ACTIVE).prefetch_related(
+        "rates"
+    )
+    return listings.prefetch_related(
+        "items__category", "photos", Prefetch("offers", queryset=own_offers, to_attr="my_offers")
+    )
