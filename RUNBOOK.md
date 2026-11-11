@@ -159,6 +159,7 @@ The `scheduler` service runs Django management commands every `SCHEDULER_INTERVA
 |---|---|
 | `purge_otp_challenges` | Deletes login code records older than one day |
 | `expire_listings` | Moves open listings with no accepted offer to expired, `LISTING_EXPIRY_DAYS` after publishing |
+| `expire_offers` | Marks active offers past their `OFFER_EXPIRY_HOURS` validity as expired. An offer past its time can't be accepted even before this runs. |
 
 To expire listings straight away instead of waiting for the next run: `docker compose exec backend python manage.py expire_listings` A failing job is logged, and the other jobs and later runs still happen.
 
