@@ -1,10 +1,11 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useParams } from "react-router";
 
 import { fetchNearbyListing, type NearbyListing } from "../api/dealerListings";
 import { formatIST } from "../format/time";
 import { formatWeight } from "../format/weight";
 import { itemSummary } from "../listings/items";
+import { OfferForm } from "../offers/OfferForm";
 import { strings } from "../strings";
 
 const t = strings.buying;
@@ -15,6 +16,10 @@ export function DealerListingPage() {
   const [listing, setListing] = useState<NearbyListing | null | undefined>(undefined);
 
   useEffect(() => {
+    fetchNearbyListing(id).then(setListing);
+  }, [id]);
+
+  const reload = useCallback(() => {
     fetchNearbyListing(id).then(setListing);
   }, [id]);
 
@@ -52,6 +57,13 @@ export function DealerListingPage() {
           ))}
         </ul>
       </section>
+      <OfferForm
+        key={listing.my_offer?.updated_at ?? "new"}
+        listingId={listing.id}
+        items={listing.items}
+        myOffer={listing.my_offer}
+        onChanged={reload}
+      />
       {listing.photos.length > 0 && (
         <section className="card">
           <ul className="photo-grid">

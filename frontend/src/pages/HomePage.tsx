@@ -5,6 +5,7 @@ import type { Me } from "../api/auth";
 import { apiFetch } from "../api/client";
 import { MyListings } from "../listings/MyListings";
 import { NearbyListings } from "../listings/NearbyListings";
+import { MyOffers } from "../offers/MyOffers";
 import type { View } from "../session/views";
 import { strings } from "../strings";
 
@@ -57,6 +58,7 @@ export function HomePage({ me, view }: Props) {
       )}
       {me && view === "selling" && <MyListings />}
       {me && view === "buying" && <NearbyListings />}
+      {me && view === "buying" && <MyOffers />}
       {me === null && (
         <Link className="button" to="/login">
           {strings.session.logIn}

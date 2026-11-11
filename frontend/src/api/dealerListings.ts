@@ -1,5 +1,6 @@
 import { apiFetch } from "./client";
 import type { ListingItem, ListingPhoto } from "./listings";
+import type { Offer } from "./offers";
 
 /** A listing as dealers see it before an offer is accepted: approximate area only. */
 export type NearbyListing = {
@@ -9,6 +10,8 @@ export type NearbyListing = {
   items: ListingItem[];
   photos: ListingPhoto[];
   published_at: string;
+  /** This dealer's own live offer on the listing, if any. */
+  my_offer: Offer | null;
 };
 
 export type NearbyResult =
