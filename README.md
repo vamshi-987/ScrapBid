@@ -59,7 +59,7 @@ Run `docker compose exec backend python manage.py seed_demo`, then log in at htt
 | `9000000007` | Approved dealer (Secunderabad) |
 | `9000000008` | Approved dealer out of range of the Hyderabad sellers (Warangal) |
 
-The seed also adds scrap categories: paper, cardboard, iron, copper, aluminium, plastic, e-waste and batteries (the last two restricted), and appliance (priced per item). It also adds the listings above, with photos. More demo data, such as offers, is added as features land. Any other valid Indian mobile number also works and gets a new seller account on first login.
+The seed also adds scrap categories: paper, cardboard, iron, copper, aluminium, plastic, e-waste and batteries (the last two restricted), and appliance (priced per item). It also adds the listings above, with photos, and offers on the open ones: three dealers on Seller 1's paper listing, two on the bulk copper, and only the e-waste-authorised dealer on the e-waste listing. Any other valid Indian mobile number also works and gets a new seller account on first login.
 
 ## Key decisions
 
@@ -113,6 +113,11 @@ The seed also adds scrap categories: paper, cardboard, iron, copper, aluminium, 
   - Dealers see the locality, pincode, items and photos. The exact address, coordinates, distance and anything about the seller stay hidden until an offer is accepted.
   - Dealers never see their own listings. A listing with any restricted category (e-waste, batteries) appears only to dealers authorised for e-waste.
   - Dealers whose scale certificate has expired lose access until they're re-approved with a valid certificate.
+- **Offers.**
+  - A dealer offers a rate per category: ₹ per kg, or ₹ per item for appliances. The server works out the estimate: each line is weight × rate (or count × rate), rounded half up to the paisa, and the lines are added up. Money is always integer paise, and any total sent by the app is ignored.
+  - Offers are labelled as estimates everywhere: the final amount depends on the weight measured at pickup.
+  - A dealer can have one active offer per listing, enforced by the database. They can edit it (which restarts its validity) or withdraw it while the listing is open.
+  - Offers expire after `OFFER_EXPIRY_HOURS` (24), because rates change daily. Once a listing has an active offer, the seller can't edit it. Offers close when the listing expires.
 - **Photos are cleaned and private.**
   - Listing photos (JPG, PNG or WebP, up to 10 MB, up to 6 per listing) are decoded to check they're real images.
   - They're rotated upright, shrunk to at most 2048 px, and re-encoded from pixels only. All EXIF, GPS and other metadata is removed. Dealer document photos go through the same cleaning.
