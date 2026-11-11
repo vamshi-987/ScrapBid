@@ -1,17 +1,21 @@
 from django.shortcuts import get_object_or_404
 from rest_framework import status
 from rest_framework.exceptions import ValidationError
-from rest_framework.generics import ListAPIView
+from rest_framework.generics import ListAPIView, RetrieveAPIView
+from rest_framework.pagination import PageNumberPagination
 from rest_framework.parsers import MultiPartParser
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from accounts.models import Role
 from accounts.permissions import HasRole
+from dealers.permissions import IsApprovedDealer
 from listings import photos, services
+from listings.feed import visible_to_dealer
 from listings.models import Category, Listing, ListingPhoto
 from listings.serializers import (
     CategorySerializer,
+    DealerListingSerializer,
     ListingDetailSerializer,
     ListingPhotoSerializer,
     ListingSummarySerializer,
@@ -124,3 +128,29 @@ class ListingPhotoDetailView(APIView):
         except photos.PhotoError as error:
             photo_error(error)
         return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class DealerFeedPagination(PageNumberPagination):
+    page_size = 20
+
+
+class DealerListingFeedView(ListAPIView):
+    """Open listings in the approved dealer's service area, nearest first."""
+
+    permission_classes = [IsApprovedDealer]
+    serializer_class = DealerListingSerializer
+    pagination_class = DealerFeedPagination
+
+    def get_queryset(self):
+        return visible_to_dealer(self.request.dealer_profile)
+
+
+class DealerListingDetailView(RetrieveAPIView):
+    """One listing from the feed. Anything the feed wouldn't show is not found."""
+
+    permission_classes = [IsApprovedDealer]
+    serializer_class = DealerListingSerializer
+    lookup_url_kwarg = "listing_id"
+
+    def get_queryset(self):
+        return visible_to_dealer(self.request.dealer_profile)
