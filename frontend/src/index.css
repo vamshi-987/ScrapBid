@@ -330,3 +330,14 @@ button.link {
 .offer-list > li.muted {
   opacity: 0.6;
 }
+
+.slot-picker {
+  margin-top: 0.75rem;
+}
+
+.notice {
+  padding: 0.75rem;
+  border-radius: 0.5rem;
+  background: var(--bg);
+  border: 1px solid var(--border);
+}

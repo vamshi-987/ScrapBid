@@ -157,6 +157,7 @@ class ListingDetailSerializer(ListingSummarySerializer):
     longitude = serializers.SerializerMethodField()
     photos = ListingPhotoSerializer(many=True)
     is_editable = serializers.SerializerMethodField()
+    order = serializers.SerializerMethodField()
 
     class Meta(ListingSummarySerializer.Meta):
         fields = [
@@ -167,6 +168,7 @@ class ListingDetailSerializer(ListingSummarySerializer):
             "photos",
             "is_editable",
             "relisted_from",
+            "order",
         ]
 
     def get_latitude(self, listing):
@@ -177,6 +179,11 @@ class ListingDetailSerializer(ListingSummarySerializer):
 
     def get_is_editable(self, listing):
         return is_editable(listing)
+
+    def get_order(self, listing):
+        """The active order's ID once an offer is accepted, for the pickup page."""
+        order = listing.orders.filter(status="active").values_list("pk", flat=True).first()
+        return order
 
 
 class DealerListingSerializer(serializers.ModelSerializer):

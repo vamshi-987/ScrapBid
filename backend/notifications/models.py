@@ -5,6 +5,11 @@ from django.db import models
 class NotificationKind(models.TextChoices):
     NEW_OFFER = "new_offer", "New offer on your listing"
     OFFER_ACCEPTED = "offer_accepted", "Your offer was accepted"
+    SLOT_PROPOSED = "slot_proposed", "A pickup time was proposed"
+    SLOT_CONFIRMED = "slot_confirmed", "The pickup time is confirmed"
+    RESCHEDULE_REQUESTED = "reschedule_requested", "A new pickup time was requested"
+    RESCHEDULE_ACCEPTED = "reschedule_accepted", "The new pickup time was accepted"
+    RESCHEDULE_DECLINED = "reschedule_declined", "The new pickup time was declined"
 
 
 class Notification(models.Model):

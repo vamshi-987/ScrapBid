@@ -51,6 +51,8 @@ export type ListingDetail = ListingSummary & {
   photos: ListingPhoto[];
   is_editable: boolean;
   relisted_from: number | null;
+  /** The active order once an offer is accepted (for the pickup page). */
+  order: number | null;
 };
 
 export type ItemInput =

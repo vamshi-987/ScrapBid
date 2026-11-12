@@ -317,10 +317,18 @@ def test_seed_demo_listings(django_capture_on_commit_callbacks):
 
     assert sorted(Listing.objects.values_list("id", flat=True)) == first_ids
     statuses = sorted(Listing.objects.values_list("status", flat=True))
-    assert statuses == ["draft", "expired", "offer_accepted", "open", "open", "open"]
+    assert statuses == [
+        "draft",
+        "expired",
+        "offer_accepted",
+        "open",
+        "open",
+        "open",
+        "pickup_scheduled",
+    ]
     open_listings = Listing.objects.filter(status=ListingStatus.OPEN)
     assert all(listing.photos.exists() for listing in open_listings)
-    assert AuditLog.objects.filter(entity_type="listing", to_status="open").count() == 5
+    assert AuditLog.objects.filter(entity_type="listing", to_status="open").count() == 6
     assert (
         AuditLog.objects.filter(entity_type="listing", to_status="expired", actor=None).count() == 1
     )

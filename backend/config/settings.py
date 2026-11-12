@@ -64,6 +64,17 @@ LISTING_EXPIRY_DAYS = env_positive_int("LISTING_EXPIRY_DAYS", 7)
 # Offers are estimates at the day's rates; they expire this many hours after being made.
 OFFER_EXPIRY_HOURS = env_positive_int("OFFER_EXPIRY_HOURS", 24)
 
+# Pickup slots, in IST: a window of PICKUP_SLOT_HOURS between the day's start and end
+# hours, starting at least PICKUP_MIN_NOTICE_HOURS from now and at most
+# PICKUP_MAX_DAYS_AHEAD days ahead. Reschedule requests close PICKUP_RESCHEDULE_DEADLINE_HOURS
+# before the confirmed slot.
+PICKUP_SLOT_HOURS = env_positive_int("PICKUP_SLOT_HOURS", 2)
+PICKUP_DAY_START_HOUR = env_positive_int("PICKUP_DAY_START_HOUR", 8)
+PICKUP_DAY_END_HOUR = env_positive_int("PICKUP_DAY_END_HOUR", 20)
+PICKUP_MIN_NOTICE_HOURS = env_positive_int("PICKUP_MIN_NOTICE_HOURS", 2)
+PICKUP_MAX_DAYS_AHEAD = env_positive_int("PICKUP_MAX_DAYS_AHEAD", 7)
+PICKUP_RESCHEDULE_DEADLINE_HOURS = env_positive_int("PICKUP_RESCHEDULE_DEADLINE_HOURS", 2)
+
 if DJANGO_ENV == "production":
     _problems = production_problems(
         debug=DEBUG,
