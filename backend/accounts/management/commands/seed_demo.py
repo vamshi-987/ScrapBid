@@ -1,5 +1,5 @@
 import io
-from datetime import timedelta
+from datetime import datetime, time, timedelta
 from decimal import Decimal
 
 from django.conf import settings
@@ -21,6 +21,7 @@ from listings.services import create_listing, expiry_cutoff, publish_listing
 from listings.transitions import transition
 from offers.models import OfferStatus
 from offers.services import create_offer
+from orders.scheduling import IST, confirm_slot, propose_slot
 from orders.services import accept_offer
 
 # Demo accounts for local testing. Listed in README.md; log in with DEV_FIXED_OTP.
@@ -204,6 +205,17 @@ DEMO_LISTINGS = [
         "photos": 1,
         "status": ListingStatus.OFFER_ACCEPTED,  # offers below; one accepted
     },
+    {
+        "phone": "+919000000002",
+        "address_line": "Demo listing 7: 8-2-120, Ameerpet Main Road",
+        "locality": "Ameerpet",
+        "pincode": "500016",
+        "latitude": 17.4370,
+        "longitude": 78.4475,
+        "items": [("Cardboard", "40", None)],
+        "photos": 1,
+        "status": ListingStatus.PICKUP_SCHEDULED,  # accepted, slot confirmed for tomorrow
+    },
 ]
 
 # Offers on the open demo listings: (listing marker, dealer phone, {category: paise}).
@@ -217,10 +229,18 @@ DEMO_OFFERS = [
     ("Demo listing 4:", "+919000000007", {"Copper": 71000}),
     ("Demo listing 6:", "+919000000006", {"Aluminium": 11000}),
     ("Demo listing 6:", "+919000000007", {"Aluminium": 11500}),
+    ("Demo listing 7:", "+919000000006", {"Cardboard": 1000}),
 ]
 
 # Offers the seller has accepted: (listing marker, dealer phone).
-DEMO_ACCEPTED = [("Demo listing 6:", "+919000000007")]
+DEMO_ACCEPTED = [
+    ("Demo listing 6:", "+919000000007"),
+    ("Demo listing 7:", "+919000000006"),
+]
+
+# Accepted listings with a pickup slot the seller proposed and the dealer confirmed:
+# (listing marker, days from today, start hour IST).
+DEMO_SCHEDULED = [("Demo listing 7:", 1, 10)]
 
 PHOTO_COLOURS = ["#8d6e63", "#78909c", "#a1887f"]
 
@@ -280,6 +300,10 @@ class Command(BaseCommand):
                 self._seed_acceptance(marker, phone)
             self.stdout.write(f"Accepted offers: {len(DEMO_ACCEPTED)}")
 
+            for marker, days, hour in DEMO_SCHEDULED:
+                self._seed_schedule(marker, days, hour)
+            self.stdout.write(f"Scheduled pickups: {len(DEMO_SCHEDULED)}")
+
         self.stdout.write(self.style.SUCCESS("Demo data is ready."))
 
     def _seed_dealer(self, spec):
@@ -322,10 +346,14 @@ class Command(BaseCommand):
             overdue = (
                 existing.status == ListingStatus.OPEN and existing.published_at <= expiry_cutoff()
             )
+            slot_passed = existing.orders.filter(
+                status="active", slot_end__lte=timezone.now()
+            ).exists()
             if (
                 existing.status == spec["status"]
                 and existing.photos.count() == spec["photos"]
                 and not overdue
+                and not slot_passed
             ):
                 return
             for photo in existing.photos.all():
@@ -361,6 +389,7 @@ class Command(BaseCommand):
             ListingStatus.OPEN,
             ListingStatus.EXPIRED,
             ListingStatus.OFFER_ACCEPTED,
+            ListingStatus.PICKUP_SCHEDULED,
         ):
             publish_listing(listing, seller)
         if spec["status"] == ListingStatus.EXPIRED:
@@ -388,3 +417,14 @@ class Command(BaseCommand):
             return
         offer = listing.offers.get(dealer__user__phone=phone, status=OfferStatus.ACTIVE)
         accept_offer(listing.seller, offer)
+
+    def _seed_schedule(self, marker, days, hour):
+        """Seller proposes a slot and the dealer confirms it, through the real rules."""
+        listing = Listing.objects.get(address_line__startswith=marker)
+        if listing.status != ListingStatus.OFFER_ACCEPTED:
+            return
+        order = listing.orders.get(status="active")
+        day = timezone.localdate() + timedelta(days=days)
+        start = datetime.combine(day, time(hour), tzinfo=IST)
+        propose_slot(order, listing.seller, start)
+        confirm_slot(order, order.dealer.user)

@@ -294,7 +294,7 @@ def test_seed_demo_has_an_accepted_listing():
     call_command("seed_demo")
     call_command("seed_demo")
 
-    order = Order.objects.get()
+    order = Order.objects.get(listing__address_line__startswith="Demo listing 6:")
     assert order.listing.status == ListingStatus.OFFER_ACCEPTED
     assert order.dealer.user.phone == "+919000000007"
     assert order.estimated_total_paise == 30 * 11500

@@ -12,6 +12,17 @@ class OrderStatus(models.TextChoices):
     CANCELLED = "cancelled", "Cancelled"
 
 
+class SlotStatus(models.TextChoices):
+    NONE = "", "Not proposed"
+    PROPOSED = "proposed", "Proposed"
+    CONFIRMED = "confirmed", "Confirmed"
+
+
+class Party(models.TextChoices):
+    SELLER = "seller", "Seller"
+    DEALER = "dealer", "Dealer"
+
+
 class Order(models.Model):
     """Created when a seller accepts an offer. Holds a snapshot of what was agreed:
     the declared amounts and the accepted rates. The listing's status tracks the
@@ -28,6 +39,17 @@ class Order(models.Model):
         max_length=10, choices=OrderStatus.choices, default=OrderStatus.ACTIVE
     )
     estimated_total_paise = models.PositiveBigIntegerField()
+    # Pickup slot (UTC). Proposed by one side, confirmed by the other.
+    slot_start = models.DateTimeField(null=True, blank=True)
+    slot_end = models.DateTimeField(null=True, blank=True)
+    slot_status = models.CharField(
+        max_length=10, choices=SlotStatus.choices, default=SlotStatus.NONE, blank=True
+    )
+    slot_proposed_by = models.CharField(max_length=10, choices=Party.choices, blank=True)
+    # A pending request to move a confirmed slot; applies only if the other side accepts.
+    reschedule_start = models.DateTimeField(null=True, blank=True)
+    reschedule_end = models.DateTimeField(null=True, blank=True)
+    reschedule_requested_by = models.CharField(max_length=10, choices=Party.choices, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
