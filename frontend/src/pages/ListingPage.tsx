@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState, type ChangeEvent } from "react";
-import { useNavigate, useParams } from "react-router";
+import { Link, useNavigate, useParams } from "react-router";
 
 import {
   deleteListingPhoto,
@@ -100,6 +100,11 @@ export function ListingPage() {
           )}
         </p>
         {listing.relisted_from && <p>{t.relistedNote}</p>}
+        {listing.order && (
+          <Link className="button" to={`/orders/${listing.order}`}>
+            {strings.pickup.openPickup}
+          </Link>
+        )}
         {listing.status === "expired" && (
           <>
             <p>{t.expiredHint}</p>

@@ -1,6 +1,13 @@
 import { apiFetch, postJson } from "./client";
 
-export type NotificationKind = "new_offer" | "offer_accepted";
+export type NotificationKind =
+  | "new_offer"
+  | "offer_accepted"
+  | "slot_proposed"
+  | "slot_confirmed"
+  | "reschedule_requested"
+  | "reschedule_accepted"
+  | "reschedule_declined";
 
 export type AppNotification = {
   id: number;
