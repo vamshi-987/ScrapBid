@@ -158,6 +158,10 @@ The seed also adds scrap categories: paper, cardboard, iron, copper, aluminium, 
   - 30 minutes after a confirmed slot ends with no pickup, the scheduler records a no-show. If the dealer checked in, the seller missed it; otherwise the dealer did.
   - The side that missed it gets a strike and a 7-day block: a blocked seller can't publish, and a blocked dealer can't make offers.
   - A strike can be challenged within 48 hours. Admins see every case with the check-in evidence, and can uphold the strike or remove it (lifting the block). Cancellation and no-show counts appear on each user in the admin.
+- **Misuse stats for admins.** Each user's page in Django admin shows, as a dealer: pickups weighed, short-weight denials and their rate, the average weight variance and disputes (with how many were upheld); as a seller: the average weight variance; and for everyone, cancellations and no-shows.
+  - Variance is (verified − declared) ÷ declared for each weighed per-kg line, averaged, so a negative value means less was measured than declared. Counts of per-item goods are left out.
+  - A short-weight denial isn't counted as a cancellation, because it carries no penalty.
+  - The numbers are computed in the database and appear only in the admin, never in the app's API.
 - **Contact details are shared only within an open order.**
   - Once an offer is accepted, the dealer sees the exact pickup address (with an "Open in maps" link) and the seller's phone. The seller sees the dealer's phone.
   - Nobody else ever sees them: not other dealers, other sellers, or admins using the app.
