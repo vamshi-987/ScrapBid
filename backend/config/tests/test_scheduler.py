@@ -44,3 +44,17 @@ def test_interval_must_be_positive(monkeypatch, value):
 
     with pytest.raises(ValueError):
         scheduler.interval_seconds()
+
+
+@pytest.mark.django_db
+def test_no_migrations_pending_on_a_migrated_database():
+    assert scheduler.migrations_pending() is False
+
+
+@pytest.mark.django_db
+def test_pending_migrations_are_detected(monkeypatch):
+    from django.db.migrations.executor import MigrationExecutor
+
+    monkeypatch.setattr(MigrationExecutor, "migration_plan", lambda self, targets: [("app", False)])
+
+    assert scheduler.migrations_pending() is True
