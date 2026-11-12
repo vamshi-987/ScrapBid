@@ -18,6 +18,7 @@ urlpatterns = [
     path(
         "orders/<int:order_id>/complete", views.CompleteOrderView.as_view(), name="order-complete"
     ),
+    path("orders/<int:order_id>/dispute", views.DisputeView.as_view(), name="order-dispute"),
     path("strikes", views.MyStrikesView.as_view(), name="my-strikes"),
     path(
         "strikes/<int:strike_id>/challenge",

@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { completePickup, confirmWeighing } from "../api/orders";
+import { completePickup, confirmWeighing, disputePickup } from "../api/orders";
 
 afterEach(() => vi.unstubAllGlobals());
 
@@ -51,5 +51,24 @@ describe("completePickup", () => {
       ok: false,
       reason: "invalid_code",
     });
+  });
+});
+
+describe("disputePickup", () => {
+  it("sends only the reason", async () => {
+    const fetchMock = respond({ id: 7, listing_status: "disputed" });
+
+    const result = await disputePickup(7, "My scale showed 24 kg");
+
+    expect(result.ok).toBe(true);
+    const [path, init] = fetchMock.mock.calls[0];
+    expect(path).toBe("/api/orders/7/dispute");
+    expect(JSON.parse(init.body)).toEqual({ reason: "My scale showed 24 kg" });
+  });
+
+  it("returns the error code", async () => {
+    respond({ code: "wrong_stage" }, 409);
+
+    expect(await disputePickup(7, "x")).toEqual({ ok: false, reason: "wrong_stage" });
   });
 });

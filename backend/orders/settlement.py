@@ -81,7 +81,8 @@ def _compare(line, tolerance_percent):
     return OVER if difference > 0 else SHORT
 
 
-def _amount(quantity, rate_paise):
+def line_amount(quantity, rate_paise):
+    """quantity × rate in paise, rounded half up to the paisa."""
     return int((quantity * Decimal(rate_paise)).quantize(Decimal("1"), rounding=ROUND_HALF_UP))
 
 
@@ -112,7 +113,7 @@ def settle(lines, tolerance_percent):
                 taken=taken,
                 comparison=comparison,
                 choice=line.choice,
-                amount_paise=_amount(taken, line.rate_paise),
+                amount_paise=line_amount(taken, line.rate_paise),
             )
         )
     if denied:

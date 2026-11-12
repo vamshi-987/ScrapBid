@@ -10,7 +10,7 @@ from rest_framework.views import APIView
 from accounts.models import Role
 from accounts.permissions import HasRole
 from offers.models import Offer
-from orders import endings, handover, scheduling, weighing
+from orders import disputes, endings, handover, scheduling, weighing
 from orders.models import NoShowStrike, Order, OrderStatus, Party
 from orders.serializers import OrderSerializer, PickupSerializer, SlotInputSerializer
 from orders.services import AcceptError, accept_offer
@@ -333,6 +333,26 @@ class CompleteOrderView(APIView):
                 status.HTTP_409_CONFLICT
                 if error.code in ("dealer_only", "wrong_stage", "not_confirmed")
                 else status.HTTP_400_BAD_REQUEST
+            )
+            return Response({"detail": str(error), "code": error.code}, status=http_status)
+        return pickup_response(request, order_id)
+
+
+class DisputeView(APIView):
+    """The seller disputes the weighing (with a reason) instead of confirming it.
+
+    The listing goes to an admin for review; nobody can complete it meanwhile.
+    """
+
+    def post(self, request, order_id):
+        order = my_order(request, order_id)
+        try:
+            disputes.open_dispute(order, request.user, request.data.get("reason", ""))
+        except disputes.DisputeError as error:
+            http_status = (
+                status.HTTP_400_BAD_REQUEST
+                if error.code == "reason_required"
+                else status.HTTP_409_CONFLICT
             )
             return Response({"detail": str(error), "code": error.code}, status=http_status)
         return pickup_response(request, order_id)

@@ -12,6 +12,7 @@ export type PickupAction =
   | "check_in"
   | "weigh"
   | "confirm_weighing"
+  | "dispute"
   | "complete";
 
 export type Pickup = {
@@ -58,6 +59,11 @@ export type Pickup = {
   payment_method: "" | PaymentMethod;
   paid_amount_paise: number | null;
   completed_at: string | null;
+  disputed_at: string | null;
+  dispute_reason: string;
+  dispute_outcome: "" | "completed_measured" | "completed_adjusted" | "cancelled";
+  dispute_note: string;
+  dispute_resolved_at: string | null;
   status: "active" | "completed" | "cancelled";
   actions: PickupAction[];
 };
@@ -183,6 +189,11 @@ export function completePickup(id: number, code: string, paymentMethod: PaymentM
   return pickupResult(
     postJson(`/api/orders/${id}/complete`, { code, payment_method: paymentMethod }),
   );
+}
+
+/** The seller disputes the weighing; an admin reviews it. */
+export function disputePickup(id: number, reason: string) {
+  return pickupResult(postJson(`/api/orders/${id}/dispute`, { reason }));
 }
 
 export type Strike = {
