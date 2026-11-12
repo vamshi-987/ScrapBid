@@ -10,6 +10,10 @@ class NotificationKind(models.TextChoices):
     RESCHEDULE_REQUESTED = "reschedule_requested", "A new pickup time was requested"
     RESCHEDULE_ACCEPTED = "reschedule_accepted", "The new pickup time was accepted"
     RESCHEDULE_DECLINED = "reschedule_declined", "The new pickup time was declined"
+    ORDER_CANCELLED = "order_cancelled", "The pickup was cancelled"
+    DEALER_ARRIVED = "dealer_arrived", "The dealer has arrived"
+    NO_SHOW_RECORDED = "no_show_recorded", "You missed a pickup"
+    PICKUP_MISSED = "pickup_missed", "The other side missed the pickup"
 
 
 class Notification(models.Model):

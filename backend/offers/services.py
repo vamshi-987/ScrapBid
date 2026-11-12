@@ -28,6 +28,7 @@ class OfferError(Exception):
         "not_live": "This offer is no longer active.",
         "wrong_categories": "Give exactly one rate for each category on the listing.",
         "rate_out_of_range": "A rate is too high. Check the amount.",
+        "blocked": "You can't make offers while blocked for a missed pickup.",
     }
 
     def __init__(self, code):
@@ -70,6 +71,10 @@ def create_offer(dealer, listing_id, rates):
     """Make an ACTIVE offer on a listing the dealer can see in their feed."""
     if not visible_to_dealer(dealer).filter(pk=listing_id).exists():
         raise OfferError("not_found")
+    from orders.endings import blocked_until
+
+    if blocked_until(dealer.user):
+        raise OfferError("blocked")
     try:
         with transaction.atomic():
             listing = _lock_open_listing(listing_id)

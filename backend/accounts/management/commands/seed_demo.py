@@ -17,10 +17,11 @@ from dealers.models import DealerProfile, DealerStatus, DocumentType, IdType
 from dealers.services import can_authorise_ewaste, review_dealer, store_document
 from listings.models import Category, Listing, ListingStatus, PricingUnit
 from listings.photos import add_photo
-from listings.services import create_listing, expiry_cutoff, publish_listing
+from listings.services import cancel_listing, create_listing, expiry_cutoff, publish_listing
 from listings.transitions import transition
 from offers.models import OfferStatus
 from offers.services import create_offer
+from orders.endings import cancel_order
 from orders.scheduling import IST, confirm_slot, propose_slot
 from orders.services import accept_offer
 
@@ -216,6 +217,17 @@ DEMO_LISTINGS = [
         "photos": 1,
         "status": ListingStatus.PICKUP_SCHEDULED,  # accepted, slot confirmed for tomorrow
     },
+    {
+        "phone": "+919000000002",
+        "address_line": "Demo listing 8: 8-2-120, Ameerpet Main Road",
+        "locality": "Ameerpet",
+        "pincode": "500016",
+        "latitude": 17.4370,
+        "longitude": 78.4475,
+        "items": [("Plastic", "10", None)],
+        "photos": 1,
+        "status": ListingStatus.CANCELLED,  # dealer cancelled, then the seller withdrew it
+    },
 ]
 
 # Offers on the open demo listings: (listing marker, dealer phone, {category: paise}).
@@ -230,13 +242,19 @@ DEMO_OFFERS = [
     ("Demo listing 6:", "+919000000006", {"Aluminium": 11000}),
     ("Demo listing 6:", "+919000000007", {"Aluminium": 11500}),
     ("Demo listing 7:", "+919000000006", {"Cardboard": 1000}),
+    ("Demo listing 8:", "+919000000007", {"Plastic": 1200}),
+    ("Demo listing 8:", "+919000000006", {"Plastic": 1100}),
 ]
 
 # Offers the seller has accepted: (listing marker, dealer phone).
 DEMO_ACCEPTED = [
     ("Demo listing 6:", "+919000000007"),
     ("Demo listing 7:", "+919000000006"),
+    ("Demo listing 8:", "+919000000007"),
 ]
+
+# Cancel history: (listing marker, dealer's reason, then the seller's reason).
+DEMO_CANCELLATIONS = [("Demo listing 8:", "Truck broke down", "Sold to a neighbour")]
 
 # Accepted listings with a pickup slot the dealer proposed and the seller confirmed:
 # (listing marker, days from today, start hour IST).
@@ -303,6 +321,10 @@ class Command(BaseCommand):
             for marker, days, hour in DEMO_SCHEDULED:
                 self._seed_schedule(marker, days, hour)
             self.stdout.write(f"Scheduled pickups: {len(DEMO_SCHEDULED)}")
+
+            for marker, dealer_reason, seller_reason in DEMO_CANCELLATIONS:
+                self._seed_cancellation(marker, dealer_reason, seller_reason)
+            self.stdout.write(f"Cancellation histories: {len(DEMO_CANCELLATIONS)}")
 
         self.stdout.write(self.style.SUCCESS("Demo data is ready."))
 
@@ -390,6 +412,7 @@ class Command(BaseCommand):
             ListingStatus.EXPIRED,
             ListingStatus.OFFER_ACCEPTED,
             ListingStatus.PICKUP_SCHEDULED,
+            ListingStatus.CANCELLED,
         ):
             publish_listing(listing, seller)
         if spec["status"] == ListingStatus.EXPIRED:
@@ -428,3 +451,12 @@ class Command(BaseCommand):
         start = datetime.combine(day, time(hour), tzinfo=IST)
         propose_slot(order, order.dealer.user, start)
         confirm_slot(order, listing.seller)
+
+    def _seed_cancellation(self, marker, dealer_reason, seller_reason):
+        """The accepted dealer cancels (the listing reopens), then the seller withdraws it."""
+        listing = Listing.objects.get(address_line__startswith=marker)
+        if listing.status != ListingStatus.OFFER_ACCEPTED:
+            return
+        order = listing.orders.get(status="active")
+        cancel_order(order, order.dealer.user, dealer_reason)
+        cancel_listing(listing, listing.seller, seller_reason)

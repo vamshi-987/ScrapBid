@@ -17,6 +17,11 @@ urlpatterns = [
         name="listing-offers",
     ),
     path(
+        "listings/<int:listing_id>/cancel",
+        views.ListingCancelView.as_view(),
+        name="listing-cancel",
+    ),
+    path(
         "listings/<int:listing_id>/relist",
         views.ListingRelistView.as_view(),
         name="listing-relist",

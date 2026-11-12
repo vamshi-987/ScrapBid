@@ -74,6 +74,14 @@ PICKUP_DAY_END_HOUR = env_positive_int("PICKUP_DAY_END_HOUR", 20)
 PICKUP_MIN_NOTICE_HOURS = env_positive_int("PICKUP_MIN_NOTICE_HOURS", 2)
 PICKUP_MAX_DAYS_AHEAD = env_positive_int("PICKUP_MAX_DAYS_AHEAD", 7)
 PICKUP_RESCHEDULE_DEADLINE_HOURS = env_positive_int("PICKUP_RESCHEDULE_DEADLINE_HOURS", 2)
+# The dealer must be this close to the pickup point to check in (and, later, to enter the weight).
+PICKUP_MAX_DISTANCE_METERS = env_positive_int("PICKUP_MAX_DISTANCE_METERS", 200)
+# No-shows are recorded this long after a confirmed slot ends with no pickup.
+NO_SHOW_GRACE_MINUTES = env_positive_int("NO_SHOW_GRACE_MINUTES", 30)
+# A no-show strike blocks the user (sellers: publishing; dealers: offering) for this long.
+NO_SHOW_BLOCK_DAYS = env_positive_int("NO_SHOW_BLOCK_DAYS", 7)
+# A strike can be challenged to an admin within this many hours.
+STRIKE_CHALLENGE_HOURS = env_positive_int("STRIKE_CHALLENGE_HOURS", 48)
 
 if DJANGO_ENV == "production":
     _problems = production_problems(

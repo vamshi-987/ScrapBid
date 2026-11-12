@@ -29,10 +29,18 @@ class OtpVerifySerializer(serializers.Serializer):
 
 class MeSerializer(serializers.ModelSerializer):
     roles = serializers.SerializerMethodField()
+    blocked_until = serializers.SerializerMethodField()
 
     class Meta:
         model = User
-        fields = ["id", "phone", "roles", "is_staff"]
+        fields = ["id", "phone", "roles", "is_staff", "blocked_until"]
+
+    def get_blocked_until(self, user):
+        """End of a no-show block, if any: blocked sellers can't publish, dealers can't offer."""
+        from orders.endings import blocked_until
+
+        moment = blocked_until(user)
+        return serializers.DateTimeField().to_representation(moment) if moment else None
 
     def get_roles(self, user):
         return [*user.roles, "admin"] if user.is_staff else list(user.roles)

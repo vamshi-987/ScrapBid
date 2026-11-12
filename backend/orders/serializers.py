@@ -63,6 +63,11 @@ class PickupSerializer(OrderSerializer):
             "reschedule_start",
             "reschedule_end",
             "reschedule_requested_by",
+            "dealer_checked_in_at",
+            "dealer_check_in_distance_m",
+            "cancelled_by",
+            "cancel_reason",
+            "no_show_party",
             "actions",
         ]
 

@@ -1,14 +1,14 @@
 from django.db.models import Q
 from django.shortcuts import get_object_or_404
-from rest_framework import status
+from rest_framework import serializers, status
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from accounts.models import Role
 from accounts.permissions import HasRole
 from offers.models import Offer
-from orders import scheduling
-from orders.models import Order, OrderStatus, Party
+from orders import endings, scheduling
+from orders.models import NoShowStrike, Order, OrderStatus, Party
 from orders.serializers import OrderSerializer, PickupSerializer, SlotInputSerializer
 from orders.services import AcceptError, accept_offer
 
@@ -152,3 +152,92 @@ class OrderContactView(APIView):
                 }
             )
         return Response({"name": order.dealer.business_name, "phone": order.dealer.user.phone})
+
+
+class ReasonSerializer(serializers.Serializer):
+    reason = serializers.CharField(max_length=300, allow_blank=True)
+
+
+class CheckInSerializer(serializers.Serializer):
+    latitude = serializers.FloatField(min_value=-90, max_value=90)
+    longitude = serializers.FloatField(min_value=-180, max_value=180)
+
+
+def ending_error(error):
+    http_status = (
+        status.HTTP_400_BAD_REQUEST
+        if error.code in ("reason_required", "too_far_away", "outside_slot")
+        else status.HTTP_409_CONFLICT
+    )
+    return Response({"detail": str(error), "code": error.code}, status=http_status)
+
+
+class CancelOrderView(APIView):
+    def post(self, request, order_id):
+        order = my_order(request, order_id)
+        serializer = ReasonSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        try:
+            endings.cancel_order(order, request.user, serializer.validated_data["reason"])
+        except endings.EndingError as error:
+            return ending_error(error)
+        return pickup_response(request, order_id)
+
+
+class CheckInView(APIView):
+    def post(self, request, order_id):
+        order = my_order(request, order_id)
+        serializer = CheckInSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        data = serializer.validated_data
+        try:
+            endings.check_in(order, request.user, data["latitude"], data["longitude"])
+        except endings.EndingError as error:
+            return ending_error(error)
+        return pickup_response(request, order_id)
+
+
+class StrikeSerializer(serializers.ModelSerializer):
+    can_challenge = serializers.SerializerMethodField()
+
+    class Meta:
+        model = NoShowStrike
+        fields = [
+            "id",
+            "order",
+            "party",
+            "status",
+            "blocked_until",
+            "challenge_reason",
+            "challenged_at",
+            "created_at",
+            "can_challenge",
+        ]
+
+    def get_can_challenge(self, strike):
+        from datetime import timedelta
+
+        from django.conf import settings
+        from django.utils import timezone
+
+        window_end = strike.created_at + timedelta(hours=settings.STRIKE_CHALLENGE_HOURS)
+        return strike.challenged_at is None and timezone.now() <= window_end
+
+
+class MyStrikesView(APIView):
+    def get(self, request):
+        strikes = NoShowStrike.objects.filter(user=request.user).order_by("-created_at")
+        return Response(StrikeSerializer(strikes, many=True).data)
+
+
+class ChallengeStrikeView(APIView):
+    def post(self, request, strike_id):
+        strike = get_object_or_404(NoShowStrike, pk=strike_id, user=request.user)
+        serializer = ReasonSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        try:
+            endings.challenge_strike(strike, request.user, serializer.validated_data["reason"])
+        except endings.EndingError as error:
+            return ending_error(error)
+        strike.refresh_from_db()
+        return Response(StrikeSerializer(strike).data)
