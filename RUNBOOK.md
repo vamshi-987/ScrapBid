@@ -255,6 +255,7 @@ All variables are in `.env.example` with safe local defaults. Never commit `.env
 | `NO_SHOW_GRACE_MINUTES` | `30` | A missed pickup is recorded this long after the slot ends |
 | `NO_SHOW_BLOCK_DAYS` | `7` | How long a no-show strike blocks publishing (sellers) or offering (dealers) |
 | `STRIKE_CHALLENGE_HOURS` | `48` | How long a user has to challenge a strike |
+| `WEIGHT_TOLERANCE_PERCENT` | `5` | At pickup, a verified weight within this % of the declared weight counts as equal |
 | `MINIO_ROOT_USER`, `MINIO_ROOT_PASSWORD` | `scrapbid`, `scrapbid-secret` | Local only |
 | `MINIO_CONSOLE_PORT` | `9001` | Host port for the MinIO console |
 | `SCHEDULER_INTERVAL_SECONDS` | `300` | Seconds between scheduler runs. Must be positive. |

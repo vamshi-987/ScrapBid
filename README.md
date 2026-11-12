@@ -128,6 +128,11 @@ The seed also adds scrap categories: paper, cardboard, iron, copper, aluminium, 
   - The seller confirms it or proposes another time for the dealer to confirm. The pickup is scheduled only once confirmed.
   - Either side can then ask to move it, until 2 hours before the slot. The new time applies only if the other side accepts before the confirmed slot starts; otherwise the confirmed time stands.
   - Every confirmation and accepted reschedule is in the audit log (with the old and new times), and the other side is notified. All the limits are config values.
+- **The final amount at pickup** follows fixed rules, computed on the server only. The rate is always the accepted offer's rate; nobody can change it.
+  - **Within 5%** of the declared weight (`WEIGHT_TOLERANCE_PERCENT`), either way, counts as equal: the dealer pays the verified weight × rate and can't refuse.
+  - **More than 5% over:** the dealer either takes the excess (pays the verified weight) or declines it (pays the declared weight, and the seller keeps the rest).
+  - **More than 5% under:** the dealer either accepts (pays the verified weight) or denies the pickup, which cancels it as `WEIGHT_SHORT`.
+  - Counts of per-item goods are exact, with no tolerance. The dealer never pays for more than was verified. Each line rounds half up to the paisa.
 - **Cancellations and no-shows.**
   - Either side can cancel before pickup, with a reason. If the dealer cancels, the listing reopens with a fresh 7-day window, and the other offers come back if they're still within their time. If the seller cancels, the listing is cancelled. A seller can also cancel a draft or open listing.
   - During the confirmed slot, the dealer checks in from the pickup point. This uses the phone's GPS and must be within 200 m (`PICKUP_MAX_DISTANCE_METERS`).
