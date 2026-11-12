@@ -1,5 +1,6 @@
 from django import forms
 from django.contrib import admin, messages
+from django.utils.html import format_html, format_html_join
 
 from accounts.models import Role, User
 from accounts.phone import mask_phone
@@ -31,7 +32,7 @@ class UserAdmin(admin.ModelAdmin):
     list_filter = ["is_active", "is_staff"]
     # Exact match only, so admins find a user by number without browsing numbers.
     search_fields = ["=phone"]
-    readonly_fields = ["date_joined", "last_login"]
+    readonly_fields = ["date_joined", "last_login", "misuse_stats"]
     actions = ["suspend", "reactivate"]
 
     @admin.display(description="Phone")
@@ -40,12 +41,47 @@ class UserAdmin(admin.ModelAdmin):
 
     @admin.display(description="Cancellations")
     def cancellations(self, user):
-        """Pickups this user cancelled, as seller or as dealer."""
-        from orders.models import Order, Party
+        """Pickups this user cancelled, as seller or as dealer (short-weight denials excluded)."""
+        from orders.stats import cancellation_count
 
-        as_seller = Order.objects.filter(seller=user, cancelled_by=Party.SELLER).count()
-        as_dealer = Order.objects.filter(dealer__user=user, cancelled_by=Party.DEALER).count()
-        return as_seller + as_dealer
+        return cancellation_count(user)
+
+    @admin.display(description="Misuse stats")
+    def misuse_stats(self, user):
+        """Numbers that reveal weight misuse. Variance: (verified − declared) / declared."""
+        from orders.stats import user_stats
+
+        if not user.pk:
+            return "-"
+        s = user_stats(user)
+
+        def percent(value):
+            return "no data" if value is None else f"{value:+}%"
+
+        rows = [
+            ("As dealer: pickups weighed", s["dealer_weighed"]),
+            (
+                "As dealer: short-weight denials",
+                f"{s['dealer_denials']}"
+                + (
+                    f" ({s['dealer_denial_rate_percent']}%)"
+                    if s["dealer_denial_rate_percent"] is not None
+                    else ""
+                ),
+            ),
+            ("As dealer: average weight variance", percent(s["dealer_variance_percent"])),
+            (
+                "As dealer: disputes",
+                f"{s['dealer_disputes']} ({s['dealer_disputes_upheld']} upheld)",
+            ),
+            ("As seller: average weight variance", percent(s["seller_variance_percent"])),
+            ("Cancellations", s["cancellations"]),
+            ("No-shows", s["no_shows"]),
+        ]
+        return format_html(
+            "<table>{}</table>",
+            format_html_join("", "<tr><th>{}</th><td>{}</td></tr>", rows),
+        )
 
     @admin.display(description="No-shows")
     def no_shows(self, user):
