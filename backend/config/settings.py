@@ -82,6 +82,8 @@ NO_SHOW_GRACE_MINUTES = env_positive_int("NO_SHOW_GRACE_MINUTES", 30)
 NO_SHOW_BLOCK_DAYS = env_positive_int("NO_SHOW_BLOCK_DAYS", 7)
 # A strike can be challenged to an admin within this many hours.
 STRIKE_CHALLENGE_HOURS = env_positive_int("STRIKE_CHALLENGE_HOURS", 48)
+# At pickup, a verified weight within this percentage of the declared weight counts as equal.
+WEIGHT_TOLERANCE_PERCENT = env_positive_int("WEIGHT_TOLERANCE_PERCENT", 5)
 
 if DJANGO_ENV == "production":
     _problems = production_problems(
