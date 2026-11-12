@@ -86,6 +86,11 @@ class PickupSerializer(OrderSerializer):
             "payment_method",
             "paid_amount_paise",
             "completed_at",
+            "disputed_at",
+            "dispute_reason",
+            "dispute_outcome",
+            "dispute_note",
+            "dispute_resolved_at",
             "actions",
         ]
 

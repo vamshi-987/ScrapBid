@@ -276,6 +276,8 @@ export const en = {
       weighed: "Your scrap was weighed: check the amounts",
       weight_short: "The dealer declined the pickup: the weight was short",
       order_completed: "The pickup is complete",
+      dispute_opened: "The seller disputed the weighing: an admin will review it",
+      dispute_resolved: "An admin resolved the dispute",
     },
   },
   pickup: {
@@ -294,6 +296,7 @@ export const en = {
       noShow: "Missed pickup:",
       you: "you",
       weightShort: "The dealer declined the pickup because the weight was short.",
+      byAdmin: "Cancelled by an admin after the dispute.",
     },
     weigh: {
       open: "Record the weighing",
@@ -352,6 +355,21 @@ export const en = {
       doneTitle: "Pickup complete",
       paid: "Paid",
       completedAt: "Completed at",
+      due: "Amount due, as decided by an admin:",
+    },
+    dispute: {
+      open: "The weighing looks wrong: dispute it",
+      reasonLabel: "What's wrong with the weighing?",
+      hint: "An admin reviews the scale photo and the amounts. Nobody can complete the pickup until then.",
+      send: "Send to an admin",
+      underReview: "Under review: an admin is checking the weighing.",
+      reason: "Seller's reason:",
+      resolved: "Resolved by an admin:",
+      outcomes: {
+        completed_measured: "completed at the measured amounts",
+        completed_adjusted: "completed at amounts set by the admin",
+        cancelled: "cancelled",
+      },
     },
     contact: {
       sellerTitle: "Pickup address and seller",
@@ -404,7 +422,7 @@ export const en = {
       no_request: "There's no request to answer.",
       own_request: "The other side has to answer your request.",
       request_pending: "The other side has asked for a new time. Answer that first.",
-      reason_required: "Give a reason for cancelling.",
+      reason_required: "Give a reason.",
       dealer_only: "Only the dealer checks in.",
       outside_slot: "You can check in only during the confirmed pickup time.",
       too_far_away: "You're more than 200 m from the pickup address. Move closer and try again.",

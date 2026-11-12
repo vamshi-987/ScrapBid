@@ -1,0 +1,52 @@
+{% extends "admin/base_site.html" %}
+
+{% block breadcrumbs %}
+<div class="breadcrumbs">
+  <a href="{% url 'admin:index' %}">Home</a>
+  &rsaquo; <a href="{% url 'admin:orders_order_changelist' %}">Orders</a>
+  &rsaquo; <a href="{% url 'admin:orders_order_change' order.pk %}">Order {{ order.pk }}</a>
+  &rsaquo; Resolve dispute
+</div>
+{% endblock %}
+
+{% block content %}
+<h2>The seller's reason</h2>
+<p>{{ order.dispute_reason|default:"-" }}</p>
+
+<h2>The weighing</h2>
+<table>
+  <thead>
+    <tr><th>Category</th><th>Declared</th><th>Verified</th><th>Taken</th><th>Dealer's choice</th><th>Rate (paise)</th><th>Line (paise)</th></tr>
+  </thead>
+  <tbody>
+    {% for item in items %}
+    <tr>
+      <td>{{ item.category.name }}</td>
+      <td>{% if item.declared_weight_kg is not None %}{{ item.declared_weight_kg }} kg{% else %}{{ item.declared_quantity }} items{% endif %}</td>
+      <td>{{ item.verified_amount|default:"-" }}</td>
+      <td>{{ item.taken_amount|default:"-" }}</td>
+      <td>{{ item.choice|default:"-" }}</td>
+      <td>{{ item.rate_paise }}</td>
+      <td>{{ item.amount_paise|default:"-" }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+<p>Final amount (paise): <strong>{{ order.final_amount_paise|default:"-" }}</strong>.
+  Weighed {{ order.weighed_at|default:"-" }}, {{ order.weighing_distance_m|default:"-" }} m from the address.</p>
+{% if scale_photo_url %}
+<p><a href="{{ scale_photo_url }}" target="_blank"><img src="{{ scale_photo_url }}" alt="Scale reading" style="max-width: 480px; max-height: 360px"></a></p>
+{% endif %}
+
+{% if disputed %}
+<h2>Decision</h2>
+<p>The rate is the agreed one and can't change. Completing at set amounts pays amount × rate for each line. The decision ends the order without the handover code.</p>
+<form method="post">
+  {% csrf_token %}
+  {{ form.as_p }}
+  <input type="submit" class="default" value="Resolve dispute">
+</form>
+{% else %}
+<p>This order isn't in dispute.</p>
+{% endif %}
+{% endblock %}

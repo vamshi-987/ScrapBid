@@ -17,6 +17,8 @@ class NotificationKind(models.TextChoices):
     WEIGHED = "weighed", "Your scrap was weighed: please check and confirm"
     WEIGHT_SHORT = "weight_short", "The dealer declined: the weight was short"
     ORDER_COMPLETED = "order_completed", "The pickup is complete"
+    DISPUTE_OPENED = "dispute_opened", "The seller disputed the weighing"
+    DISPUTE_RESOLVED = "dispute_resolved", "An admin resolved the dispute"
 
 
 class Notification(models.Model):

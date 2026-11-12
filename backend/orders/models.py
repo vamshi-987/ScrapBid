@@ -28,6 +28,12 @@ class PaymentMethod(models.TextChoices):
     UPI = "upi", "UPI"
 
 
+class DisputeOutcome(models.TextChoices):
+    COMPLETED_MEASURED = "completed_measured", "Completed at the measured amounts"
+    COMPLETED_ADJUSTED = "completed_adjusted", "Completed at amounts set by the admin"
+    CANCELLED = "cancelled", "Cancelled"
+
+
 class Order(models.Model):
     """Created when a seller accepts an offer. Holds a snapshot of what was agreed:
     the declared amounts and the accepted rates. The listing's status tracks the
@@ -80,6 +86,20 @@ class Order(models.Model):
     payment_method = models.CharField(max_length=10, choices=PaymentMethod.choices, blank=True)
     paid_amount_paise = models.PositiveBigIntegerField(null=True, blank=True)
     completed_at = models.DateTimeField(null=True, blank=True)
+    # Dispute: the seller disputes the weighing; an admin resolves it.
+    disputed_at = models.DateTimeField(null=True, blank=True)
+    dispute_reason = models.CharField(max_length=300, blank=True)
+    dispute_outcome = models.CharField(max_length=20, choices=DisputeOutcome.choices, blank=True)
+    dispute_upheld = models.BooleanField(null=True, blank=True)  # True: the seller was right
+    dispute_note = models.CharField(max_length=500, blank=True)
+    dispute_resolved_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        related_name="+",
+    )
+    dispute_resolved_at = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:

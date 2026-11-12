@@ -8,6 +8,7 @@ import {
   completePickup,
   confirmSlot,
   confirmWeighing,
+  disputePickup,
   fetchPickup,
   proposeSlot,
   requestReschedule,
@@ -19,6 +20,7 @@ import {
 import { formatINR } from "../format/money";
 import { formatWeight } from "../format/weight";
 import { ContactCard } from "../orders/ContactCard";
+import { Dispute } from "../orders/Dispute";
 import { Handover } from "../orders/Handover";
 import { bookableDates, formatSlot, istStart, slotStartTimes } from "../orders/slots";
 import { WeighForm, WeighingResult } from "../orders/WeighForm";
@@ -106,7 +108,9 @@ export function PickupPage() {
               ? `${t.ended.noShow} ${pickup.no_show_party === pickup.my_role ? t.ended.you : t.roles[pickup.no_show_party]}`
               : pickup.cancel_reason === "WEIGHT_SHORT"
                 ? t.ended.weightShort
-                : `${t.ended.cancelledBy} ${pickup.cancelled_by === pickup.my_role ? t.ended.you : t.roles[pickup.cancelled_by || "seller"]}: ${pickup.cancel_reason}`}
+                : pickup.dispute_outcome === "cancelled"
+                  ? t.ended.byAdmin
+                  : `${t.ended.cancelledBy} ${pickup.cancelled_by === pickup.my_role ? t.ended.you : t.roles[pickup.cancelled_by || "seller"]}: ${pickup.cancel_reason}`}
           </p>
         )}
         {pickup.dealer_checked_in_at && (
@@ -147,6 +151,11 @@ export function PickupPage() {
         busy={busy}
         onConfirm={confirmAndShowCode}
         onComplete={(code, method) => run(completePickup(pickup.id, code, method))}
+      />
+      <Dispute
+        pickup={pickup}
+        busy={busy}
+        onDispute={(reason) => run(disputePickup(pickup.id, reason))}
       />
       {can("weigh") &&
         (weighing ? (

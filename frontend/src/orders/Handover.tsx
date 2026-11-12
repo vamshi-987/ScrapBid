@@ -32,8 +32,16 @@ export function Handover({
       <section className="card">
         <h2>{t.doneTitle}</h2>
         <p>
-          {t.paid} <strong>{formatINR(pickup.paid_amount_paise ?? 0)}</strong>{" "}
-          {pickup.payment_method && t.methods[pickup.payment_method]}
+          {pickup.paid_amount_paise !== null ? (
+            <>
+              {t.paid} <strong>{formatINR(pickup.paid_amount_paise)}</strong>{" "}
+              {pickup.payment_method && t.methods[pickup.payment_method]}
+            </>
+          ) : (
+            <>
+              {t.due} <strong>{formatINR(pickup.final_amount_paise ?? 0)}</strong>
+            </>
+          )}
           {pickup.completed_at && (
             <>
               <br />

@@ -21,6 +21,7 @@ from listings.services import cancel_listing, create_listing, expiry_cutoff, pub
 from listings.transitions import transition
 from offers.models import OfferStatus
 from offers.services import create_offer
+from orders.disputes import open_dispute
 from orders.endings import cancel_order
 from orders.scheduling import IST, confirm_slot, propose_slot
 from orders.services import accept_offer
@@ -240,6 +241,17 @@ DEMO_LISTINGS = [
         "photos": 1,
         "status": ListingStatus.PICKED_UP,  # weighed by the dealer, waiting for the seller
     },
+    {
+        "phone": "+919000000002",
+        "address_line": "Demo listing 10: 8-2-120, Ameerpet Main Road",
+        "locality": "Ameerpet",
+        "pincode": "500016",
+        "latitude": 17.4370,
+        "longitude": 78.4475,
+        "items": [("Iron", "30", None)],
+        "photos": 1,
+        "status": ListingStatus.DISPUTED,  # weighed, then disputed by the seller
+    },
 ]
 
 # Offers on the open demo listings: (listing marker, dealer phone, {category: paise}).
@@ -257,6 +269,7 @@ DEMO_OFFERS = [
     ("Demo listing 8:", "+919000000007", {"Plastic": 1200}),
     ("Demo listing 8:", "+919000000006", {"Plastic": 1100}),
     ("Demo listing 9:", "+919000000007", {"Paper": 1500}),
+    ("Demo listing 10:", "+919000000006", {"Iron": 3200}),
 ]
 
 # Offers the seller has accepted: (listing marker, dealer phone).
@@ -265,6 +278,7 @@ DEMO_ACCEPTED = [
     ("Demo listing 7:", "+919000000006"),
     ("Demo listing 8:", "+919000000007"),
     ("Demo listing 9:", "+919000000007"),
+    ("Demo listing 10:", "+919000000006"),
 ]
 
 # Cancel history: (listing marker, dealer's reason, then the seller's reason).
@@ -272,10 +286,17 @@ DEMO_CANCELLATIONS = [("Demo listing 8:", "Truck broke down", "Sold to a neighbo
 
 # Accepted listings with a pickup slot the dealer proposed and the seller confirmed:
 # (listing marker, days from today, start hour IST).
-DEMO_SCHEDULED = [("Demo listing 7:", 1, 10), ("Demo listing 9:", 1, 12)]
+DEMO_SCHEDULED = [
+    ("Demo listing 7:", 1, 10),
+    ("Demo listing 9:", 1, 12),
+    ("Demo listing 10:", 1, 14),
+]
 
 # Scheduled pickups the dealer has weighed: (listing marker, {category: verified kg}).
-DEMO_WEIGHED = [("Demo listing 9:", {"Paper": "26"})]
+DEMO_WEIGHED = [("Demo listing 9:", {"Paper": "26"}), ("Demo listing 10:", {"Iron": "29"})]
+
+# Weighed pickups the seller disputed: (listing marker, seller's reason).
+DEMO_DISPUTES = [("Demo listing 10:", "My own scale showed 34 kg")]
 
 PHOTO_COLOURS = ["#8d6e63", "#78909c", "#a1887f"]
 
@@ -342,6 +363,12 @@ class Command(BaseCommand):
             for marker, verified in DEMO_WEIGHED:
                 self._seed_weighing(marker, verified)
             self.stdout.write(f"Weighed pickups: {len(DEMO_WEIGHED)}")
+
+            for marker, reason in DEMO_DISPUTES:
+                listing = Listing.objects.get(address_line__startswith=marker)
+                if listing.status == ListingStatus.PICKED_UP:
+                    open_dispute(listing.orders.get(status="active"), listing.seller, reason)
+            self.stdout.write(f"Disputes: {len(DEMO_DISPUTES)}")
 
             for marker, dealer_reason, seller_reason in DEMO_CANCELLATIONS:
                 self._seed_cancellation(marker, dealer_reason, seller_reason)
@@ -436,6 +463,7 @@ class Command(BaseCommand):
             ListingStatus.OFFER_ACCEPTED,
             ListingStatus.PICKUP_SCHEDULED,
             ListingStatus.PICKED_UP,
+            ListingStatus.DISPUTED,
             ListingStatus.CANCELLED,
         ):
             publish_listing(listing, seller)

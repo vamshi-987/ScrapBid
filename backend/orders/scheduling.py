@@ -252,7 +252,7 @@ def available_actions(order, user):
                 actions.append("accept_reschedule")
     if status == ListingStatus.PICKED_UP:
         if party == Party.SELLER:
-            actions.append("confirm_weighing")
+            actions.extend(["confirm_weighing", "dispute"])
         elif order.seller_confirmed_at:
             actions.append("complete")
     return actions
