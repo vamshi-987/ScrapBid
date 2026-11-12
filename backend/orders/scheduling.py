@@ -1,5 +1,6 @@
-"""Pickup slot rules: one side proposes, the other confirms; a confirmed slot moves
-only when the other side accepts a reschedule request.
+"""Pickup slot rules: the dealer proposes a time and the seller confirms it (or
+counter-proposes for the dealer to confirm). A confirmed slot moves only when the
+other side accepts a reschedule request.
 
 Times are stored in UTC and checked against the pickup hours in IST.
 """
@@ -92,7 +93,7 @@ def _notify(order, party, kind):
 
 
 def propose_slot(order, user, start):
-    """Seller proposes a time; the dealer may counter-propose once the seller has."""
+    """Dealer proposes a time; the seller may counter-propose once the dealer has."""
     with transaction.atomic():
         listing, order = _lock(order)
         party = party_of(order, user)
@@ -103,8 +104,8 @@ def propose_slot(order, user, start):
             or order.slot_status == SlotStatus.CONFIRMED
         ):
             raise SlotError("wrong_stage")
-        if party == Party.DEALER and order.slot_status != SlotStatus.PROPOSED:
-            raise SlotError("wrong_stage")  # the seller proposes first
+        if party == Party.SELLER and order.slot_status != SlotStatus.PROPOSED:
+            raise SlotError("wrong_stage")  # the dealer proposes first
         order.slot_start, order.slot_end = validate_slot(start)
         order.slot_status = SlotStatus.PROPOSED
         order.slot_proposed_by = party
@@ -227,7 +228,7 @@ def available_actions(order, user):
     if party is None or order.status != OrderStatus.ACTIVE:
         return actions
     if status == ListingStatus.OFFER_ACCEPTED:
-        if party == Party.SELLER or order.slot_status == SlotStatus.PROPOSED:
+        if party == Party.DEALER or order.slot_status == SlotStatus.PROPOSED:
             actions.append("propose")
         if (
             order.slot_status == SlotStatus.PROPOSED

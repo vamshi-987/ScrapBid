@@ -111,10 +111,11 @@ def reschedule(client, order, start):
 
 
 def scheduled(deal, start=None):
+    """The dealer proposes a time and the seller confirms it."""
     order, seller, dealer = deal
     start = start or ist(12, 10, 0)
-    propose(seller, order, start)
-    dealer.post(url(order, "/slot/confirm"))
+    propose(dealer, order, start)
+    seller.post(url(order, "/slot/confirm"))
     return order, seller, dealer
 
 
@@ -125,65 +126,65 @@ def kinds_for(user):
 # --- Propose and confirm ---------------------------------------------------
 
 
-def test_seller_proposes_and_dealer_is_notified(deal):
-    order, seller, _ = deal
+def test_dealer_proposes_and_seller_is_notified(deal):
+    order, _, dealer = deal
 
-    response = propose(seller, order, ist(12, 10, 0))
+    response = propose(dealer, order, ist(12, 10, 0))
 
     assert response.status_code == 200
     body = response.json()
-    assert (body["slot_status"], body["slot_proposed_by"]) == ("proposed", "seller")
+    assert (body["slot_status"], body["slot_proposed_by"]) == ("proposed", "dealer")
     assert datetime.fromisoformat(body["slot_start"]) == ist(12, 10, 0)
     assert datetime.fromisoformat(body["slot_end"]) == ist(12, 12, 0)
     assert body["listing_status"] == "offer_accepted"
-    assert NotificationKind.SLOT_PROPOSED in kinds_for(order.dealer.user)
-
-
-def test_dealer_cannot_propose_first_but_can_counter_propose(deal):
-    order, seller, dealer = deal
-
-    assert propose(dealer, order, ist(12, 10, 0)).json()["code"] == "wrong_stage"
-    propose(seller, order, ist(12, 10, 0))
-    response = propose(dealer, order, ist(12, 14, 0))
-
-    assert response.json()["slot_proposed_by"] == "dealer"
     assert NotificationKind.SLOT_PROPOSED in kinds_for(order.seller)
 
 
-def test_invalid_proposals_return_400(deal):
-    order, seller, _ = deal
+def test_seller_cannot_propose_first_but_can_counter_propose(deal):
+    order, seller, dealer = deal
 
-    response = propose(seller, order, ist(12, 7, 0))
+    assert propose(seller, order, ist(12, 10, 0)).json()["code"] == "wrong_stage"
+    propose(dealer, order, ist(12, 10, 0))
+    response = propose(seller, order, ist(12, 14, 0))
+
+    assert response.json()["slot_proposed_by"] == "seller"
+    assert NotificationKind.SLOT_PROPOSED in kinds_for(order.dealer.user)
+
+
+def test_invalid_proposals_return_400(deal):
+    order, _, dealer = deal
+
+    response = propose(dealer, order, ist(12, 7, 0))
 
     assert response.status_code == 400
     assert response.json()["code"] == "outside_hours"
     assert Order.objects.get(pk=order.pk).slot_status == SlotStatus.NONE
 
 
-def test_dealer_confirms_and_the_pickup_is_scheduled(deal):
+def test_seller_confirms_and_the_pickup_is_scheduled(deal):
     order, seller, dealer = deal
-    propose(seller, order, ist(12, 10, 0))
+    propose(dealer, order, ist(12, 10, 0))
 
-    response = dealer.post(url(order, "/slot/confirm"))
+    response = seller.post(url(order, "/slot/confirm"))
 
     assert response.status_code == 200
     assert response.json()["slot_status"] == "confirmed"
     assert response.json()["listing_status"] == "pickup_scheduled"
     log = AuditLog.objects.filter(to_status="pickup_scheduled").get()
-    assert log.actor == order.dealer.user
+    assert log.actor == order.seller
     assert log.details == {
         "slot_start": ist(12, 10, 0).astimezone(UTC).isoformat(),
         "slot_end": ist(12, 12, 0).astimezone(UTC).isoformat(),
     }
-    assert NotificationKind.SLOT_CONFIRMED in kinds_for(order.seller)
+    assert NotificationKind.SLOT_CONFIRMED in kinds_for(order.dealer.user)
 
 
-def test_seller_confirms_the_dealers_counter_proposal(deal):
+def test_dealer_confirms_the_sellers_counter_proposal(deal):
     order, seller, dealer = deal
-    propose(seller, order, ist(12, 10, 0))
-    propose(dealer, order, ist(12, 15, 0))
+    propose(dealer, order, ist(12, 10, 0))
+    propose(seller, order, ist(12, 15, 0))
 
-    response = seller.post(url(order, "/slot/confirm"))
+    response = dealer.post(url(order, "/slot/confirm"))
 
     assert response.json()["listing_status"] == "pickup_scheduled"
     assert datetime.fromisoformat(response.json()["slot_start"]) == ist(12, 15, 0)
@@ -191,28 +192,28 @@ def test_seller_confirms_the_dealers_counter_proposal(deal):
 
 def test_nobody_confirms_their_own_proposal(deal):
     order, seller, dealer = deal
-    propose(seller, order, ist(12, 10, 0))
+    propose(dealer, order, ist(12, 10, 0))
 
-    assert seller.post(url(order, "/slot/confirm")).json()["code"] == "own_proposal"
-    propose(dealer, order, ist(12, 14, 0))
     assert dealer.post(url(order, "/slot/confirm")).json()["code"] == "own_proposal"
+    propose(seller, order, ist(12, 14, 0))
+    assert seller.post(url(order, "/slot/confirm")).json()["code"] == "own_proposal"
 
 
 def test_cannot_confirm_without_a_proposal_or_after_the_slot_started(deal, clock):
     order, seller, dealer = deal
-    assert dealer.post(url(order, "/slot/confirm")).json()["code"] == "not_proposed"
+    assert seller.post(url(order, "/slot/confirm")).json()["code"] == "not_proposed"
 
-    propose(seller, order, ist(11, 12, 0))
+    propose(dealer, order, ist(11, 12, 0))
     clock.now = ist(11, 12, 0)
 
-    assert dealer.post(url(order, "/slot/confirm")).json()["code"] == "slot_passed"
+    assert seller.post(url(order, "/slot/confirm")).json()["code"] == "slot_passed"
     assert Order.objects.get(pk=order.pk).listing.status == ListingStatus.OFFER_ACCEPTED
 
 
 def test_proposing_again_after_confirmation_is_refused(deal):
-    order, seller, _ = scheduled(deal)
+    order, _, dealer = scheduled(deal)
 
-    assert propose(seller, order, ist(13, 10, 0)).json()["code"] == "wrong_stage"
+    assert propose(dealer, order, ist(13, 10, 0)).json()["code"] == "wrong_stage"
 
 
 # --- Rescheduling ----------------------------------------------------------
@@ -298,8 +299,8 @@ def test_answering_rules(deal):
 
 
 def test_reschedule_needs_a_confirmed_slot(deal):
-    order, seller, _ = deal
-    propose(seller, order, ist(12, 10, 0))
+    order, seller, dealer = deal
+    propose(dealer, order, ist(12, 10, 0))
 
     assert reschedule(seller, order, ist(13, 10, 0)).json()["code"] == "wrong_stage"
 
@@ -330,17 +331,17 @@ def test_only_the_seller_and_accepted_dealer_can_see_or_act(deal):
 def test_each_side_sees_its_role_and_available_actions(deal):
     order, seller, dealer = deal
 
-    assert (seller.get(url(order)).json()["my_role"], seller.get(url(order)).json()["actions"]) == (
-        "seller",
+    assert (dealer.get(url(order)).json()["my_role"], dealer.get(url(order)).json()["actions"]) == (
+        "dealer",
         ["propose"],
     )
-    assert dealer.get(url(order)).json()["actions"] == []
-    propose(seller, order, ist(12, 10, 0))
-    assert dealer.get(url(order)).json()["actions"] == ["propose", "confirm"]
-    dealer.post(url(order, "/slot/confirm"))
-    assert seller.get(url(order)).json()["actions"] == ["request_reschedule"]
-    reschedule(seller, order, ist(13, 10, 0))
-    assert dealer.get(url(order)).json()["actions"] == ["decline_reschedule", "accept_reschedule"]
+    assert seller.get(url(order)).json()["actions"] == []
+    propose(dealer, order, ist(12, 10, 0))
+    assert seller.get(url(order)).json()["actions"] == ["propose", "confirm"]
+    seller.post(url(order, "/slot/confirm"))
+    assert dealer.get(url(order)).json()["actions"] == ["request_reschedule"]
+    reschedule(dealer, order, ist(13, 10, 0))
+    assert seller.get(url(order)).json()["actions"] == ["decline_reschedule", "accept_reschedule"]
 
 
 def test_pickup_has_no_exact_address_or_phone(deal):

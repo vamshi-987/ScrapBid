@@ -124,8 +124,8 @@ The seed also adds scrap categories: paper, cardboard, iron, copper, aluminium, 
     - Only live offers from dealers who are still eligible can be accepted.
   - Offers expire after `OFFER_EXPIRY_HOURS` (24), because rates change daily. An offer past its time can't be accepted and stops locking the listing straight away; the scheduler then marks it expired. Once a listing has an active offer, the seller can't edit it. Offers close when the listing expires.
 - **Pickup times are agreed by both sides.**
-  - After accepting an offer, the seller proposes a 2-hour window: between 8 am and 8 pm IST, at least 2 hours from now and at most 7 days ahead.
-  - The dealer confirms it or proposes another time for the seller to confirm. The pickup is scheduled only once confirmed.
+  - After an offer is accepted, the dealer proposes a 2-hour window: between 8 am and 8 pm IST, at least 2 hours from now and at most 7 days ahead.
+  - The seller confirms it or proposes another time for the dealer to confirm. The pickup is scheduled only once confirmed.
   - Either side can then ask to move it, until 2 hours before the slot. The new time applies only if the other side accepts before the confirmed slot starts; otherwise the confirmed time stands.
   - Every confirmation and accepted reschedule is in the audit log (with the old and new times), and the other side is notified. All the limits are config values.
 - **In-app notifications** (no SMS, WhatsApp or push in the MVP).
