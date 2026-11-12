@@ -145,7 +145,7 @@ The seed also adds scrap categories: paper, cardboard, iron, copper, aluminium, 
   - The seller can show a fresh code at any time; the old one stops working. No code exists before the seller confirms.
   - The dealer pays the seller directly (cash or UPI), then enters the code and the payment method. After 5 wrong codes (`HANDOVER_CODE_MAX_ATTEMPTS`) the code is locked until the seller shows a fresh one.
   - The listing then becomes completed. The order records the method and the amount paid, which is always the server's final amount; any amount sent by the app is ignored. Contact details stop being shared, and the seller is notified. A retried completion changes nothing.
-  - No payment gateway: the app only records the payment.
+  - No payment gateway for pickups: the app only records the payment. (Penalties and fees are paid online; see below.)
 - **Disputes.**
   - Instead of confirming, the seller can dispute the weighing, with a reason. The listing moves to disputed, any code already shown stops working, and nobody can complete the pickup. The dealer is notified.
   - Admins open the order in Django admin (filter by listing status "disputed") and choose **Resolve dispute**. The page shows the seller's reason, the scale photo, and the declared, verified and taken amounts.
@@ -156,8 +156,8 @@ The seed also adds scrap categories: paper, cardboard, iron, copper, aluminium, 
   - Either side can cancel before pickup, with a reason. If the dealer cancels, the listing reopens with a fresh 7-day window, and the other offers come back if they're still within their time. If the seller cancels, the listing is cancelled. A seller can also cancel a draft or open listing.
   - During the confirmed slot, the dealer checks in from the pickup point. This uses the phone's GPS and must be within 200 m (`PICKUP_MAX_DISTANCE_METERS`).
   - 30 minutes after a confirmed slot ends with no pickup, the scheduler records a no-show. If the dealer checked in, the seller missed it; otherwise the dealer did.
-  - The side that missed it gets a strike and a 7-day block: a blocked seller can't publish, and a blocked dealer can't make offers.
-  - A strike can be challenged within 48 hours. Admins see every case with the check-in evidence, and can uphold the strike or remove it (lifting the block). Cancellation and no-show counts appear on each user in the admin.
+  - The side that missed it gets a strike and a ₹100 penalty (`NO_SHOW_PENALTY_PAISE`). Until it's paid, a seller can't publish and a dealer can't make offers.
+  - A strike can be challenged within 48 hours. Admins see every case with the check-in evidence, and can uphold the strike or remove it. Removing it cancels an unpaid penalty; a paid penalty isn't refunded. Cancellation and no-show counts appear on each user in the admin.
 - **Misuse stats for admins.** Each user's page in Django admin shows, as a dealer: pickups weighed, short-weight denials and their rate, the average weight variance and disputes (with how many were upheld); as a seller: the average weight variance; and for everyone, cancellations and no-shows.
   - Variance is (verified − declared) ÷ declared for each weighed per-kg line, averaged, so a negative value means less was measured than declared. Counts of per-item goods are left out.
   - A short-weight denial isn't counted as a cancellation, because it carries no penalty.
@@ -165,8 +165,13 @@ The seed also adds scrap categories: paper, cardboard, iron, copper, aluminium, 
 - **Rate flags and suspensions.**
   - A scheduled job flags a dealer whose average rate for a category over the last 30 days is more than 20% above the average of the other dealers. Each dealer counts once, by their own average, and at least 3 other dealers are needed. Withdrawn offers are left out. Admins review flags in the admin and close them with a note; a dealer and category get at most one flag in 30 days.
   - A dealer's 3rd upheld dispute (since their last suspension) suspends them. A suspended user can still log in and finish open pickups, but can't publish listings, accept offers, or make or edit offers, and sellers no longer see their offers. The user is notified.
-  - The fee to lift a suspension is ₹500, doubling from the 3rd suspension (₹500, ₹500, ₹1,000, ₹2,000…). For now an admin lifts suspensions in the admin; paying the fee in the app comes with online payments.
+  - The fee to lift a suspension is ₹500, doubling from the 3rd suspension (₹500, ₹500, ₹1,000, ₹2,000…). Paying the fee in the app lifts the suspension straight away. An admin can also lift it, which cancels the unpaid fee.
   - All thresholds and amounts are config values.
+- **Penalties and fees are paid online through Razorpay.**
+  - The **Penalties and fees** page (`/dues`) lists what the user owes. **Pay** opens a Razorpay payment page for the amount the server set; nothing the app sends changes it.
+  - When Razorpay sends the user back, the server checks the callback's signature (HMAC-SHA256 with the key secret) and then asks Razorpay whether the link is fully paid. Only then is the due marked paid and the block or suspension lifted. A forged or replayed callback changes nothing.
+  - If the redirect back is missed, **I've paid: check again** asks Razorpay directly.
+  - The backend talks to Razorpay with the standard library only (no SDK). Locally, `PAYMENT_PROVIDER=fake` serves a test pay page with **Pay** and **Fail** buttons and sends the same signed callback, so the same code runs without an account or internet. Production refuses to start with the fake gateway.
 - **Contact details are shared only within an open order.**
   - Once an offer is accepted, the dealer sees the exact pickup address (with an "Open in maps" link) and the seller's phone. The seller sees the dealer's phone.
   - Nobody else ever sees them: not other dealers, other sellers, or admins using the app.

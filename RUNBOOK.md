@@ -75,11 +75,15 @@ Run `seed_demo` again to put it back.
 
 To try a dispute, use the same weighed paper pickup: as the seller, choose **The weighing looks wrong: dispute it** and give a reason. To resolve one, log in as the admin `9000000001`, open http://localhost/admin/orders/order/, filter by listing status "disputed", open the order and choose **Resolve dispute**. Seller 1's iron pickup (`9000000002`, dealer `9000000006`) is already in dispute. Pick an outcome, say whether it's upheld, add a note and submit. Run `seed_demo` again to put both back.
 
-Flags and suspensions are under **Flags** and **Suspensions** in the admin. The seed has an open rate flag on dealer `9000000007` and a suspension on dealer `9000000008`. Both are demo records created directly, because the seed has too few dealers in one city to raise a real flag and suspending an active demo dealer would block the other flows. Close a flag with the **Close selected flags** action and a note; lift a suspension with **Lift selected suspensions**. Log in as `9000000008` to see the suspension notice on the home page. A real suspension happens automatically on a dealer's 3rd upheld dispute (see the dispute steps above).
+Flags and suspensions are under **Flags** and **Suspensions** in the admin. The seed has an open rate flag on dealer `9000000007` and a suspension on dealer `9000000008`. Both are demo records created directly, because the seed has too few dealers in one city to raise a real flag and suspending an active demo dealer would block the other flows. Close a flag with the **Close selected flags** action and a note; lift a suspension with **Lift selected suspensions**. Log in as `9000000008` to see the suspension notice on the home page.
+
+To try paying, log in as `9000000008`, choose **Pay now** (or open http://localhost/dues) and **Pay ₹500**. Locally this opens the fake gateway's test page: **Pay** completes the payment and returns you to the app, where the suspension is lifted; **Fail** returns without paying. Run `seed_demo` again for a fresh demo suspension. To try a no-show penalty, record a no-show with the steps above and pay it the same way.
+
+**Razorpay in production:** create API keys in the Razorpay Dashboard (Account & Settings → API Keys; use test-mode keys first), set `PAYMENT_PROVIDER=razorpay`, `RAZORPAY_KEY_ID`, `RAZORPAY_KEY_SECRET` and `APP_BASE_URL` (your `https://` address) in the server's `.env`, and restart. No webhook is needed: the app confirms each payment with Razorpay when the user returns or taps **I've paid: check again**. A real suspension happens automatically on a dealer's 3rd upheld dispute (see the dispute steps above).
 
 To see the misuse stats, open a user in the admin (http://localhost/admin/accounts/user/, search by the exact number, e.g. `+919000000006`). The seed gives dealer `9000000006` two weighed pickups (iron 30 → 29 kg, disputed; cardboard 20 → 15 kg, denied): 1 denial (50.0%), an average variance of −14.2% and 1 dispute.
 
-Missed pickups are recorded by the scheduler 30 minutes after a confirmed slot ends. If the dealer checked in, the seller missed it; otherwise the dealer did. That side gets a strike and a 7-day block, and can challenge it on **Missed pickups** (`/strikes`) within 48 hours. Admins review strikes under **No show strikes** in the admin and choose **Uphold** or **Remove** (removing lifts the block).
+Missed pickups are recorded by the scheduler 30 minutes after a confirmed slot ends. If the dealer checked in, the seller missed it; otherwise the dealer did. That side gets a strike and a ₹100 penalty, and is blocked until it's paid on **Penalties and fees** (`/dues`). They can challenge the strike on **Missed pickups** (`/strikes`) within 48 hours. Admins review strikes under **No show strikes** in the admin and choose **Uphold** or **Remove** (removing cancels an unpaid penalty; paid penalties aren't refunded).
 
 To try a no-show without waiting, move the seeded pickup's slot into the past and run the job:
 
@@ -201,7 +205,7 @@ The `scheduler` service runs Django management commands every `SCHEDULER_INTERVA
 |---|---|
 | `purge_otp_challenges` | Deletes login code records older than one day |
 | `expire_listings` | Moves open listings with no accepted offer to expired, `LISTING_EXPIRY_DAYS` after publishing |
-| `record_no_shows` | Records a no-show 30 minutes after a confirmed slot ends with no pickup: a strike and a 7-day block for the side that missed it |
+| `record_no_shows` | Records a no-show 30 minutes after a confirmed slot ends with no pickup: a strike and a ₹100 penalty for the side that missed it, who is blocked until it's paid |
 | `expire_offers` | Marks active offers past their `OFFER_EXPIRY_HOURS` validity as expired. An offer past its time can't be accepted even before this runs. |
 | `flag_rate_outliers` | Flags dealers whose average rate for a category over the last `RATE_FLAG_WINDOW_DAYS` is more than `RATE_FLAG_THRESHOLD_PERCENT` above the other dealers' average (needs `RATE_FLAG_MIN_PEERS` other dealers); at most one flag per dealer and category per window |
 
@@ -274,7 +278,7 @@ All variables are in `.env.example` with safe local defaults. Never commit `.env
 | `PICKUP_RESCHEDULE_DEADLINE_HOURS` | `2` | Requests to move a confirmed pickup close this many hours before it |
 | `PICKUP_MAX_DISTANCE_METERS` | `200` | How close the dealer must be to the pickup point to check in and to record the weighing |
 | `NO_SHOW_GRACE_MINUTES` | `30` | A missed pickup is recorded this long after the slot ends |
-| `NO_SHOW_BLOCK_DAYS` | `7` | How long a no-show strike blocks publishing (sellers) or offering (dealers) |
+| `NO_SHOW_PENALTY_PAISE` | `10000` | Penalty for a no-show (₹100); the user is blocked from publishing (sellers) or offering (dealers) until it's paid |
 | `STRIKE_CHALLENGE_HOURS` | `48` | How long a user has to challenge a strike |
 | `WEIGHT_TOLERANCE_PERCENT` | `5` | At pickup, a verified weight within this % of the declared weight counts as equal |
 | `HANDOVER_CODE_EXPIRY_MINUTES` | `15` | How long the seller's handover code is valid |
@@ -285,6 +289,10 @@ All variables are in `.env.example` with safe local defaults. Never commit `.env
 | `AUTO_SUSPEND_UPHELD_DISPUTES` | `3` | Upheld disputes against a dealer (since their last suspension) that suspend them from selling and buying |
 | `SUSPENSION_FEE_PAISE` | `50000` | Fee to lift a suspension (₹500) |
 | `SUSPENSION_FEE_DOUBLES_FROM` | `3` | From this suspension on, the fee doubles each time (₹500, ₹500, ₹1,000, ₹2,000…) |
+| `PAYMENT_PROVIDER` | `fake` | `fake` simulates the gateway locally; production must use `razorpay` |
+| `RAZORPAY_KEY_ID` | empty | Razorpay API key ID (production) |
+| `RAZORPAY_KEY_SECRET` | empty | Razorpay API key secret (production); also checks callback signatures |
+| `APP_BASE_URL` | `http://localhost` | Where the app is reached; the gateway returns users to `APP_BASE_URL/api/payments/callback`. Must be `https://` in production |
 | `MINIO_ROOT_USER`, `MINIO_ROOT_PASSWORD` | `scrapbid`, `scrapbid-secret` | Local only |
 | `MINIO_CONSOLE_PORT` | `9001` | Host port for the MinIO console |
 | `SCHEDULER_INTERVAL_SECONDS` | `300` | Seconds between scheduler runs. Must be positive. |
