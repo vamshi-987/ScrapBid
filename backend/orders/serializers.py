@@ -1,3 +1,4 @@
+from django.conf import settings
 from rest_framework import serializers
 
 from orders.models import Order, OrderItem
@@ -16,6 +17,11 @@ class OrderItemSerializer(serializers.ModelSerializer):
             "declared_weight_kg",
             "declared_quantity",
             "rate_paise",
+            "verified_amount",
+            "taken_amount",
+            "comparison",
+            "choice",
+            "amount_paise",
         ]
 
 
@@ -47,6 +53,8 @@ class PickupSerializer(OrderSerializer):
     locality = serializers.CharField(source="listing.locality")
     pincode = serializers.CharField(source="listing.pincode")
     my_role = serializers.SerializerMethodField()
+    scale_photo_url = serializers.SerializerMethodField()
+    weight_tolerance_percent = serializers.SerializerMethodField()
     actions = serializers.SerializerMethodField()
 
     class Meta(OrderSerializer.Meta):
@@ -68,8 +76,23 @@ class PickupSerializer(OrderSerializer):
             "cancelled_by",
             "cancel_reason",
             "no_show_party",
+            "weighed_at",
+            "weighing_distance_m",
+            "final_amount_paise",
+            "scale_photo_url",
+            "weight_tolerance_percent",
             "actions",
         ]
+
+    def get_weight_tolerance_percent(self, order):
+        """The server's tolerance, so the app can show which choices apply while weighing."""
+        return settings.WEIGHT_TOLERANCE_PERCENT
+
+    def get_scale_photo_url(self, order):
+        """A short-lived link to the scale photo, for the seller and the dealer only."""
+        from config.storage import presigned_url
+
+        return presigned_url(order.scale_photo.name) if order.scale_photo else None
 
     def get_my_role(self, order):
         from orders.scheduling import party_of

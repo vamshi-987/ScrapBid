@@ -1,13 +1,16 @@
+import json
+
 from django.db.models import Q
 from django.shortcuts import get_object_or_404
 from rest_framework import serializers, status
+from rest_framework.parsers import MultiPartParser
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from accounts.models import Role
 from accounts.permissions import HasRole
 from offers.models import Offer
-from orders import endings, scheduling
+from orders import endings, scheduling, weighing
 from orders.models import NoShowStrike, Order, OrderStatus, Party
 from orders.serializers import OrderSerializer, PickupSerializer, SlotInputSerializer
 from orders.services import AcceptError, accept_offer
@@ -241,3 +244,50 @@ class ChallengeStrikeView(APIView):
             return ending_error(error)
         strike.refresh_from_db()
         return Response(StrikeSerializer(strike).data)
+
+
+class WeighView(APIView):
+    """The dealer records the weighing: scale photo, GPS and the verified amounts (multipart).
+
+    `lines` is JSON: [{"category": id, "verified": "20.5", "choice": null | "take_excess" | ...}].
+    Any total or rate sent is ignored; amounts come from the order snapshot.
+    """
+
+    parser_classes = [MultiPartParser]
+
+    def post(self, request, order_id):
+        order = my_order(request, order_id)
+        try:
+            lines = json.loads(request.data.get("lines") or "[]")
+            latitude = float(request.data["latitude"])
+            longitude = float(request.data["longitude"])
+        except (ValueError, KeyError, TypeError):
+            return Response(
+                {
+                    "detail": "Send the GPS position and the verified amounts.",
+                    "code": "bad_request",
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        if not isinstance(lines, list):
+            lines = []
+        try:
+            weighing.record_weighing(
+                order,
+                request.user,
+                latitude=latitude,
+                longitude=longitude,
+                photo=request.FILES.get("photo"),
+                lines=lines,
+            )
+        except weighing.WeighingError as error:
+            http_status = (
+                status.HTTP_409_CONFLICT
+                if error.code in ("dealer_only", "wrong_stage")
+                else status.HTTP_400_BAD_REQUEST
+            )
+            return Response(
+                {"detail": str(error), "code": error.code, "category": error.category},
+                status=http_status,
+            )
+        return pickup_response(request, order_id)

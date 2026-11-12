@@ -242,6 +242,8 @@ def available_actions(order, user):
         in_slot = order.slot_start <= now <= order.slot_end
         if party == Party.DEALER and in_slot and not order.dealer_checked_in_at:
             actions.append("check_in")
+        if party == Party.DEALER and not order.weighed_at:
+            actions.append("weigh")
         if now <= _deadline(order) and order.reschedule_requested_by in ("", party):
             actions.append("request_reschedule")
         if order.reschedule_requested_by and order.reschedule_requested_by != party:

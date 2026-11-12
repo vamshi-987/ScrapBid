@@ -60,6 +60,12 @@ class Order(models.Model):
     cancelled_at = models.DateTimeField(null=True, blank=True)
     # Set by the no-show job: which side missed the confirmed slot.
     no_show_party = models.CharField(max_length=10, choices=Party.choices, blank=True)
+    # Weighing at pickup (server time and position) with the scale photo, and the result.
+    weighed_at = models.DateTimeField(null=True, blank=True)
+    weighing_location = models.PointField(geography=True, srid=4326, null=True, blank=True)
+    weighing_distance_m = models.PositiveIntegerField(null=True, blank=True)
+    scale_photo = models.FileField(max_length=200, blank=True)
+    final_amount_paise = models.PositiveBigIntegerField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -83,6 +89,12 @@ class OrderItem(models.Model):
     declared_weight_kg = models.DecimalField(max_digits=10, decimal_places=3, null=True, blank=True)
     declared_quantity = models.PositiveIntegerField(null=True, blank=True)
     rate_paise = models.PositiveBigIntegerField()
+    # Recorded at pickup: what the scale (or count) showed, what the dealer took, how.
+    verified_amount = models.DecimalField(max_digits=10, decimal_places=3, null=True, blank=True)
+    taken_amount = models.DecimalField(max_digits=10, decimal_places=3, null=True, blank=True)
+    comparison = models.CharField(max_length=10, blank=True)  # equal | over | short
+    choice = models.CharField(max_length=20, blank=True)
+    amount_paise = models.PositiveBigIntegerField(null=True, blank=True)
 
     class Meta:
         constraints = [

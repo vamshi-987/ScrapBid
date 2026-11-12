@@ -9,13 +9,16 @@ import {
   fetchPickup,
   proposeSlot,
   requestReschedule,
+  weighPickup,
   type Pickup,
   type PickupResult,
+  type Weighing,
 } from "../api/orders";
 import { formatINR } from "../format/money";
 import { formatWeight } from "../format/weight";
 import { ContactCard } from "../orders/ContactCard";
 import { bookableDates, formatSlot, istStart, slotStartTimes } from "../orders/slots";
+import { WeighForm, WeighingResult } from "../orders/WeighForm";
 import { formatIST } from "../format/time";
 import { getCurrentPosition } from "../session/location";
 import { strings } from "../strings";
@@ -29,6 +32,7 @@ export function PickupPage() {
   const [pickup, setPickup] = useState<Pickup | null | undefined>(undefined);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<ErrorKey | null>(null);
+  const [weighing, setWeighing] = useState(false);
 
   useEffect(() => {
     fetchPickup(id).then(setPickup);
@@ -64,6 +68,15 @@ export function PickupPage() {
     }
   }
 
+  async function weigh(photo: Blob, lines: Weighing["lines"]) {
+    try {
+      const here = await getCurrentPosition();
+      await run(weighPickup(pickup!.id, { ...here, photo, lines }));
+    } catch {
+      setError("location");
+    }
+  }
+
   return (
     <main className="page">
       <h1>{t.title}</h1>
@@ -75,7 +88,9 @@ export function PickupPage() {
           <p className="status-error">
             {pickup.no_show_party
               ? `${t.ended.noShow} ${pickup.no_show_party === pickup.my_role ? t.ended.you : t.roles[pickup.no_show_party]}`
-              : `${t.ended.cancelledBy} ${pickup.cancelled_by === pickup.my_role ? t.ended.you : t.roles[pickup.cancelled_by || "seller"]}: ${pickup.cancel_reason}`}
+              : pickup.cancel_reason === "WEIGHT_SHORT"
+                ? t.ended.weightShort
+                : `${t.ended.cancelledBy} ${pickup.cancelled_by === pickup.my_role ? t.ended.you : t.roles[pickup.cancelled_by || "seller"]}: ${pickup.cancel_reason}`}
           </p>
         )}
         {pickup.dealer_checked_in_at && (
@@ -109,6 +124,16 @@ export function PickupPage() {
           <small>{strings.offers.estimateNote}</small>
         </p>
       </section>
+
+      <WeighingResult pickup={pickup} />
+      {can("weigh") &&
+        (weighing ? (
+          <WeighForm pickup={pickup} busy={busy} onWeigh={weigh} />
+        ) : (
+          <button type="button" onClick={() => setWeighing(true)}>
+            {t.weigh.open}
+          </button>
+        ))}
 
       <ContactCard orderId={pickup.id} role={pickup.my_role} />
 
