@@ -11,6 +11,7 @@ import { LoginPage } from "./pages/LoginPage";
 import { NewListingPage } from "./pages/NewListingPage";
 import { NotificationsPage } from "./pages/NotificationsPage";
 import { PickupPage } from "./pages/PickupPage";
+import { DuesPage } from "./pages/DuesPage";
 import { StrikesPage } from "./pages/StrikesPage";
 import { chooseView, rememberView, rememberedView, type View } from "./session/views";
 import { strings } from "./strings";
@@ -59,6 +60,7 @@ export function App() {
         <Route path="/notifications" element={<NotificationsPage />} />
         <Route path="/orders/:id" element={<PickupPage />} />
         <Route path="/strikes" element={<StrikesPage />} />
+        <Route path="/dues" element={<DuesPage />} />
         <Route
           path="*"
           element={

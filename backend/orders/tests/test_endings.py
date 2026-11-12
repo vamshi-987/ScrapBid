@@ -331,7 +331,7 @@ def test_no_check_in_means_the_dealer_missed_it(scheduled, clock):
     assert Offer.objects.get(pk=scheduled["lost"]).status == OfferStatus.EXPIRED
     strike = NoShowStrike.objects.get()
     assert (strike.user, strike.party) == (order.dealer.user, "dealer")
-    assert strike.blocked_until == clock.now + timedelta(days=7)
+    assert (strike.due.amount_paise, strike.due.status) == (10000, "unpaid")  # ₹100 penalty
     log = AuditLog.objects.get(entity_id=listing.pk, reason="No-show: dealer")
     assert log.actor is None
     assert Notification.objects.filter(
@@ -418,7 +418,7 @@ def test_a_blocked_dealer_cannot_make_offers(scheduled, clock, categories):
 
     assert response.status_code == 409
     assert response.json()["code"] == "blocked"
-    assert scheduled["dealer"].get("/api/auth/me").json()["blocked_until"] is not None
+    assert scheduled["dealer"].get("/api/auth/me").json()["blocked"] is True
 
 
 def test_a_blocked_seller_cannot_publish(scheduled, clock, categories):
@@ -442,13 +442,22 @@ def test_a_blocked_seller_cannot_publish(scheduled, clock, categories):
     assert response.json()["code"] == "blocked"
 
 
-def test_the_block_ends_after_seven_days(scheduled, clock, categories):
+def test_the_block_lasts_until_the_penalty_is_paid(scheduled, clock, categories):
+    from orders.gateway import FakeGateway
+    from orders.payments import confirm_payment, start_payment
+
     strike = missed_pickup(scheduled, clock, "dealer")
-    clock.now = strike.blocked_until + timedelta(seconds=1)
+    clock.now += timedelta(days=8)  # past the old 7-day block: no fixed end any more
     fresh = make_listing(categories)
+    assert offer_on(scheduled["dealer"], fresh, rates(categories)).status_code == 409
+
+    start_payment(strike.due)
+    strike.due.refresh_from_db()
+    FakeGateway().pay(strike.due.link_id)
+    confirm_payment(strike.due)
 
     assert offer_on(scheduled["dealer"], fresh, rates(categories)).status_code == 201
-    assert scheduled["dealer"].get("/api/auth/me").json()["blocked_until"] is None
+    assert scheduled["dealer"].get("/api/auth/me").json()["blocked"] is False
 
 
 # --- Challenging a strike --------------------------------------------------
@@ -511,7 +520,7 @@ def test_admin_upholds_a_strike_and_the_block_stays(scheduled, clock):
 
     strike.refresh_from_db()
     assert strike.status == StrikeStatus.UPHELD
-    assert scheduled["dealer"].get("/api/auth/me").json()["blocked_until"] is not None
+    assert scheduled["dealer"].get("/api/auth/me").json()["blocked"] is True
 
 
 def test_admin_sees_cancellation_and_no_show_counts(deal, clock):

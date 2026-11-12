@@ -201,7 +201,7 @@ export type Strike = {
   order: number;
   party: "seller" | "dealer";
   status: "active" | "upheld" | "removed";
-  blocked_until: string;
+  penalty: { id: number; amount_paise: number; status: "unpaid" | "paid" | "cancelled" } | null;
   challenge_reason: string;
   challenged_at: string | null;
   created_at: string;

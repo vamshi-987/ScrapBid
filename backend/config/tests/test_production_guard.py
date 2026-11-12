@@ -12,6 +12,10 @@ SAFE = {
     "secret_key": "a-real-production-secret",
     "otp_provider": "msg91",
     "dev_fixed_otp": "",
+    "payment_provider": "razorpay",
+    "razorpay_key_id": "rzp_live_example",
+    "razorpay_key_secret": "a-real-razorpay-secret",
+    "app_base_url": "https://scrapbid.example",
 }
 
 SAFE_ENV = {
@@ -20,6 +24,10 @@ SAFE_ENV = {
     "DJANGO_SECRET_KEY": "a-real-production-secret",
     "OTP_PROVIDER": "msg91",
     "DEV_FIXED_OTP": "",
+    "PAYMENT_PROVIDER": "razorpay",
+    "RAZORPAY_KEY_ID": "rzp_live_example",
+    "RAZORPAY_KEY_SECRET": "a-real-razorpay-secret",
+    "APP_BASE_URL": "https://scrapbid.example",
 }
 
 
@@ -35,6 +43,10 @@ def test_safe_production_settings_have_no_problems():
         ({"secret_key": ""}, "DJANGO_SECRET_KEY"),
         ({"otp_provider": "console"}, "OTP_PROVIDER"),
         ({"dev_fixed_otp": "123456"}, "DEV_FIXED_OTP"),
+        ({"payment_provider": "fake"}, "PAYMENT_PROVIDER"),
+        ({"razorpay_key_id": ""}, "RAZORPAY_KEY_ID"),
+        ({"razorpay_key_secret": ""}, "RAZORPAY_KEY_SECRET"),
+        ({"app_base_url": "http://scrapbid.example"}, "APP_BASE_URL"),
     ],
 )
 def test_each_unsafe_value_is_reported(override, expected):
@@ -71,6 +83,9 @@ def test_production_starts_with_safe_settings():
         {"DJANGO_SECRET_KEY": DEFAULT_SECRET_KEY},
         {"OTP_PROVIDER": "console"},
         {"DEV_FIXED_OTP": "123456"},
+        {"PAYMENT_PROVIDER": "fake"},
+        {"RAZORPAY_KEY_SECRET": ""},
+        {"APP_BASE_URL": "http://localhost"},
     ],
 )
 def test_production_refuses_to_start_with_unsafe_settings(override):

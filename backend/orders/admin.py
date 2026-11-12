@@ -10,7 +10,7 @@ from config.storage import presigned_url
 from listings.models import ListingStatus
 from orders.disputes import DisputeError, resolve_dispute
 from orders.endings import resolve_strike
-from orders.models import DisputeOutcome, NoShowStrike, Order, OrderItem
+from orders.models import DisputeOutcome, Due, NoShowStrike, Order, OrderItem
 
 
 class OrderItemInline(admin.TabularInline):
@@ -158,10 +158,46 @@ class ResolveDisputeForm(forms.Form):
         return data
 
 
+@admin.register(Due)
+class DueAdmin(admin.ModelAdmin):
+    """Penalties and fees owed to the platform, and their payments. View-only: dues change
+    only through the payment rules."""
+
+    list_display = ["id", "user_phone", "kind", "amount_paise", "status", "created_at", "paid_at"]
+    list_filter = ["status", "kind"]
+    fields = [
+        "user_phone",
+        "kind",
+        "amount_paise",
+        "status",
+        "strike",
+        "suspension",
+        "link_id",
+        "payment_id",
+        "created_at",
+        "paid_at",
+        "cancelled_at",
+    ]
+    readonly_fields = fields
+
+    @admin.display(description="User")
+    def user_phone(self, due):
+        return mask_phone(due.user.phone)
+
+    def has_add_permission(self, request):
+        return False
+
+    def has_change_permission(self, request, obj=None):
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        return False
+
+
 @admin.register(NoShowStrike)
 class NoShowStrikeAdmin(admin.ModelAdmin):
     """Every missed pickup, with the check-in evidence. Admins uphold or remove strikes;
-    removing one lifts its block straight away."""
+    removing one cancels its penalty if it's still unpaid (which lifts the block)."""
 
     list_display = [
         "id",
@@ -169,7 +205,7 @@ class NoShowStrikeAdmin(admin.ModelAdmin):
         "party",
         "status",
         "challenged",
-        "blocked_until",
+        "penalty",
         "checked_in",
         "check_in_distance",
         "created_at",
@@ -180,7 +216,7 @@ class NoShowStrikeAdmin(admin.ModelAdmin):
         "order",
         "party",
         "status",
-        "blocked_until",
+        "penalty",
         "challenge_reason",
         "challenged_at",
         "checked_in",
@@ -196,6 +232,11 @@ class NoShowStrikeAdmin(admin.ModelAdmin):
     @admin.display(description="User")
     def user_phone(self, strike):
         return mask_phone(strike.user.phone)
+
+    @admin.display(description="Penalty")
+    def penalty(self, strike):
+        due = getattr(strike, "due", None)
+        return f"{due.amount_paise} paise, {due.get_status_display().lower()}" if due else "-"
 
     @admin.display(boolean=True, description="Challenged")
     def challenged(self, strike):

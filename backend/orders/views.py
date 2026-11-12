@@ -1,17 +1,23 @@
 import json
 
-from django.db.models import Q
-from django.shortcuts import get_object_or_404
+from django.conf import settings
+from django.db.models import Case, Q, When
+from django.http import Http404, HttpResponse
+from django.middleware.csrf import get_token
+from django.shortcuts import get_object_or_404, redirect
+from django.utils.html import format_html
 from rest_framework import serializers, status
-from rest_framework.parsers import MultiPartParser
+from rest_framework.parsers import FormParser, MultiPartParser
+from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from accounts.models import Role
 from accounts.permissions import HasRole
 from offers.models import Offer
-from orders import disputes, endings, handover, scheduling, weighing
-from orders.models import NoShowStrike, Order, OrderStatus, Party
+from orders import disputes, endings, handover, payments, scheduling, weighing
+from orders.gateway import FakeGateway
+from orders.models import Due, DueStatus, NoShowStrike, Order, OrderStatus, Party
 from orders.serializers import OrderSerializer, PickupSerializer, SlotInputSerializer
 from orders.services import AcceptError, accept_offer
 
@@ -202,6 +208,13 @@ class CheckInView(APIView):
 
 class StrikeSerializer(serializers.ModelSerializer):
     can_challenge = serializers.SerializerMethodField()
+    penalty = serializers.SerializerMethodField()
+
+    def get_penalty(self, strike):
+        due = getattr(strike, "due", None)
+        return (
+            {"id": due.pk, "amount_paise": due.amount_paise, "status": due.status} if due else None
+        )
 
     class Meta:
         model = NoShowStrike
@@ -210,7 +223,7 @@ class StrikeSerializer(serializers.ModelSerializer):
             "order",
             "party",
             "status",
-            "blocked_until",
+            "penalty",
             "challenge_reason",
             "challenged_at",
             "created_at",
@@ -356,3 +369,105 @@ class DisputeView(APIView):
             )
             return Response({"detail": str(error), "code": error.code}, status=http_status)
         return pickup_response(request, order_id)
+
+
+class DueSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Due
+        fields = ["id", "kind", "amount_paise", "status", "created_at", "paid_at"]
+
+
+def my_due(request, due_id):
+    return get_object_or_404(Due, pk=due_id, user=request.user)
+
+
+def payment_error(error):
+    http_status = (
+        status.HTTP_503_SERVICE_UNAVAILABLE
+        if error.code == "gateway_unavailable"
+        else status.HTTP_409_CONFLICT
+    )
+    return Response({"detail": str(error), "code": error.code}, status=http_status)
+
+
+class MyDuesView(APIView):
+    """Penalties and fees the user owes or has paid, unpaid first."""
+
+    def get(self, request):
+        dues = Due.objects.filter(user=request.user).order_by(
+            Case(When(status=DueStatus.UNPAID, then=0), default=1), "-created_at"
+        )
+        return Response(DueSerializer(dues, many=True).data)
+
+
+class PayDueView(APIView):
+    """Start paying a due: returns the gateway's payment page URL. The amount is the server's."""
+
+    def post(self, request, due_id):
+        try:
+            url = payments.start_payment(my_due(request, due_id))
+        except payments.PaymentError as error:
+            return payment_error(error)
+        return Response({"url": url})
+
+
+class CheckDueView(APIView):
+    """Ask the gateway whether the due has been paid (e.g. if the redirect back was missed)."""
+
+    def post(self, request, due_id):
+        try:
+            due = payments.confirm_payment(my_due(request, due_id))
+        except payments.PaymentError as error:
+            return payment_error(error)
+        return Response(DueSerializer(due).data)
+
+
+class PaymentCallbackView(APIView):
+    """Where the gateway sends the user back. The signature is checked and the payment is
+    confirmed with the gateway server-side; then the user goes to their dues page."""
+
+    permission_classes = [AllowAny]
+
+    def get(self, request):
+        try:
+            payments.confirm_from_callback(request.query_params)
+        except payments.PaymentError:
+            return redirect("/dues?payment=failed")
+        return redirect("/dues?payment=paid")
+
+
+class FakePayView(APIView):
+    """The local fake gateway's pay page (PAYMENT_PROVIDER=fake only)."""
+
+    permission_classes = [AllowAny]
+    parser_classes = [FormParser]
+
+    def _link(self, link_id):
+        if settings.PAYMENT_PROVIDER != "fake":
+            raise Http404
+        link = FakeGateway().get(link_id)
+        if link is None:
+            raise Http404
+        return link
+
+    def get(self, request, link_id):
+        link = self._link(link_id)
+        return HttpResponse(
+            format_html(
+                "<!doctype html><meta name=viewport content='width=device-width'>"
+                "<title>Test payment</title><body style='font-family:sans-serif;padding:16px'>"
+                "<h1>Test payment (local fake gateway)</h1><p>{}: <strong>₹{}</strong></p>"
+                "<form method=post><input type=hidden name=csrfmiddlewaretoken value='{}'>"
+                "<button name=result value=pay>Pay</button> "
+                "<button name=result value=fail>Fail</button></form>",
+                link["description"],
+                f"{link['amount'] / 100:,.2f}",
+                get_token(request),
+            )
+        )
+
+    def post(self, request, link_id):
+        self._link(link_id)
+        if request.data.get("result") != "pay":
+            return redirect("/dues?payment=failed")
+        return redirect(FakeGateway().pay(link_id))

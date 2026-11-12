@@ -17,6 +17,7 @@ from notifications.models import NotificationKind
 from notifications.services import notify
 from offers.models import Offer, OfferStatus
 from orders.models import NoShowStrike, Order, OrderStatus, Party, SlotStatus, StrikeStatus
+from orders.payments import add_no_show_penalty, cancel_unpaid
 from orders.scheduling import party_of
 from orders.services import OTHER_ACCEPTED
 
@@ -183,12 +184,8 @@ def record_no_shows():
             order.no_show_party = missed
             order.save()
             absent = order.dealer.user if missed == Party.DEALER else order.seller
-            strike = NoShowStrike.objects.create(
-                user=absent,
-                order=order,
-                party=missed,
-                blocked_until=timezone.now() + timedelta(days=settings.NO_SHOW_BLOCK_DAYS),
-            )
+            strike = NoShowStrike.objects.create(user=absent, order=order, party=missed)
+            add_no_show_penalty(strike)
             notify(
                 absent, NotificationKind.NO_SHOW_RECORDED, order_id=order.pk, strike_id=strike.pk
             )
@@ -198,17 +195,6 @@ def record_no_shows():
             )
             recorded += 1
     return recorded
-
-
-def blocked_until(user):
-    """The end of the user's current no-show block, or None if they aren't blocked."""
-    strike = (
-        NoShowStrike.objects.filter(user=user, blocked_until__gt=timezone.now())
-        .exclude(status=StrikeStatus.REMOVED)
-        .order_by("-blocked_until")
-        .first()
-    )
-    return strike.blocked_until if strike else None
 
 
 def challenge_strike(strike, user, reason):
@@ -231,9 +217,12 @@ def challenge_strike(strike, user, reason):
 
 
 def resolve_strike(strike, admin, uphold):
-    """An admin upholds a strike, or removes it (which lifts its block)."""
-    strike.status = StrikeStatus.UPHELD if uphold else StrikeStatus.REMOVED
-    strike.resolved_by = admin
-    strike.resolved_at = timezone.now()
-    strike.save()
+    """An admin upholds a strike, or removes it (which cancels its penalty if unpaid)."""
+    with transaction.atomic():
+        strike.status = StrikeStatus.UPHELD if uphold else StrikeStatus.REMOVED
+        strike.resolved_by = admin
+        strike.resolved_at = timezone.now()
+        strike.save()
+        if not uphold:
+            cancel_unpaid(getattr(strike, "due", None))
     return strike

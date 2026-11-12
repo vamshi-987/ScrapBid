@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
+import { Link } from "react-router";
 
 import { challengeStrike, fetchStrikes, type Strike } from "../api/orders";
+import { formatINR } from "../format/money";
 import { formatIST } from "../format/time";
 import { strings } from "../strings";
 
@@ -36,8 +38,11 @@ export function StrikesPage() {
             · {formatIST(strike.created_at)}
           </p>
           <p>
-            {t.blockedUntil} {formatIST(strike.blocked_until)} · {t.statuses[strike.status]}
+            {strike.penalty &&
+              `${t.penalty} ${formatINR(strike.penalty.amount_paise)} (${t.penaltyStatuses[strike.penalty.status]}) · `}
+            {t.statuses[strike.status]}
           </p>
+          {strike.penalty?.status === "unpaid" && <Link to="/dues">{t.payNow}</Link>}
           {strike.challenged_at && (
             <p>
               {t.challenged} {formatIST(strike.challenged_at)}: “{strike.challenge_reason}”

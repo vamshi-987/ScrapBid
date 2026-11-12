@@ -220,6 +220,7 @@ def test_three_upheld_disputes_suspend_the_dealer(disputes):
         None,
     )
     assert suspension.reason == "3 upheld disputes"
+    assert (suspension.due.amount_paise, suspension.due.status) == (50000, "unpaid")
     assert Notification.objects.filter(
         user=disputes.dealer.user, kind=NotificationKind.SUSPENDED
     ).exists()

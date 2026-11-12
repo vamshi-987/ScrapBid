@@ -23,6 +23,8 @@ from offers.models import OfferStatus
 from offers.services import create_offer
 from orders.disputes import open_dispute
 from orders.endings import cancel_order
+from orders.models import Due
+from orders.payments import add_suspension_fee
 from orders.scheduling import IST, confirm_slot, propose_slot
 from orders.services import accept_offer
 from orders.weighing import record_weighing
@@ -547,10 +549,13 @@ class Command(BaseCommand):
             },
         )
         far_dealer = User.objects.get(phone="+919000000008")
-        if not Suspension.objects.filter(user=far_dealer, lifted_at=None).exists():
-            Suspension.objects.create(
+        suspension = Suspension.objects.filter(user=far_dealer, lifted_at=None).first()
+        if suspension is None:
+            suspension = Suspension.objects.create(
                 user=far_dealer, reason="Demo: 3 upheld disputes", fee_paise=50000
             )
+        if not Due.objects.filter(suspension=suspension).exists():
+            add_suspension_fee(suspension)
 
     def _seed_weighing(self, marker, verified):
         """The dealer weighs at the pickup point, through the real weighing rules."""

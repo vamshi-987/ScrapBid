@@ -78,8 +78,9 @@ PICKUP_RESCHEDULE_DEADLINE_HOURS = env_positive_int("PICKUP_RESCHEDULE_DEADLINE_
 PICKUP_MAX_DISTANCE_METERS = env_positive_int("PICKUP_MAX_DISTANCE_METERS", 200)
 # No-shows are recorded this long after a confirmed slot ends with no pickup.
 NO_SHOW_GRACE_MINUTES = env_positive_int("NO_SHOW_GRACE_MINUTES", 30)
-# A no-show strike blocks the user (sellers: publishing; dealers: offering) for this long.
-NO_SHOW_BLOCK_DAYS = env_positive_int("NO_SHOW_BLOCK_DAYS", 7)
+# A no-show costs the side that missed it this penalty; they're blocked (sellers: publishing;
+# dealers: offering) until it's paid.
+NO_SHOW_PENALTY_PAISE = env_positive_int("NO_SHOW_PENALTY_PAISE", 10000)
 # A strike can be challenged to an admin within this many hours.
 STRIKE_CHALLENGE_HOURS = env_positive_int("STRIKE_CHALLENGE_HOURS", 48)
 # At pickup, a verified weight within this percentage of the declared weight counts as equal.
@@ -99,6 +100,13 @@ RATE_FLAG_MIN_PEERS = env_positive_int("RATE_FLAG_MIN_PEERS", 3)
 AUTO_SUSPEND_UPHELD_DISPUTES = env_positive_int("AUTO_SUSPEND_UPHELD_DISPUTES", 3)
 SUSPENSION_FEE_PAISE = env_positive_int("SUSPENSION_FEE_PAISE", 50000)
 SUSPENSION_FEE_DOUBLES_FROM = env_positive_int("SUSPENSION_FEE_DOUBLES_FROM", 3)
+# Penalties and fees are paid online. "fake" (local only) simulates the gateway with the same
+# signed callback; "razorpay" uses Razorpay Payment Links. APP_BASE_URL is where the gateway
+# sends the user back.
+PAYMENT_PROVIDER = env("PAYMENT_PROVIDER", "fake")
+RAZORPAY_KEY_ID = env("RAZORPAY_KEY_ID", "")
+RAZORPAY_KEY_SECRET = env("RAZORPAY_KEY_SECRET", "")
+APP_BASE_URL = env("APP_BASE_URL", "http://localhost").rstrip("/")
 
 if DJANGO_ENV == "production":
     _problems = production_problems(
@@ -106,6 +114,10 @@ if DJANGO_ENV == "production":
         secret_key=SECRET_KEY,
         otp_provider=OTP_PROVIDER,
         dev_fixed_otp=DEV_FIXED_OTP,
+        payment_provider=PAYMENT_PROVIDER,
+        razorpay_key_id=RAZORPAY_KEY_ID,
+        razorpay_key_secret=RAZORPAY_KEY_SECRET,
+        app_base_url=APP_BASE_URL,
     )
     if _problems:
         raise ImproperlyConfigured("Refusing to start in production: " + "; ".join(_problems))

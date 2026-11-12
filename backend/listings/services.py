@@ -18,7 +18,7 @@ class ListingError(Exception):
         "needs_items": "Add at least one category.",
         "needs_photo": "Add at least one photo before publishing.",
         "not_expired": "Only expired listings can be relisted.",
-        "blocked": "You can't publish listings while blocked for a missed pickup.",
+        "blocked": "You can't publish listings until the missed-pickup penalty is paid.",
         "suspended": "You can't publish listings while your account is suspended.",
         "reason_required": "Give a reason for cancelling.",
     }
@@ -92,9 +92,9 @@ def publish_listing(listing, actor):
         if not locked.photos.exists():
             raise ListingError("needs_photo")
         from accounts.models import is_suspended
-        from orders.endings import blocked_until
+        from orders.payments import has_unpaid_penalty
 
-        if blocked_until(actor):
+        if has_unpaid_penalty(actor):
             raise ListingError("blocked")
         if is_suspended(actor):
             raise ListingError("suspended")
