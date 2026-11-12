@@ -53,11 +53,11 @@ Expected output: `{"status":"ok","checks":{"database":"ok","storage":"ok"}}`. Th
 To compare offers, open an open listing. The **Offers** section lists them, highest estimate first. Seller 1's paper listing has 3 seeded offers. Choose **Accept this offer** and confirm. The listing moves to "Offer accepted", the other offers are marked not chosen, and the dealer gets a notification. Run `seed_demo` again to put the demo listing back to open.
 
 After an offer is accepted, open **Pickup details** on the listing (the dealer finds it under **My pickups** in the Buying view):
-1. The seller picks a date and a start time (IST) and proposes it.
-2. The dealer confirms it, or proposes another time for the seller to confirm.
+1. The dealer picks a date and a start time (IST) and proposes it.
+2. The seller confirms it, or proposes another time for the dealer to confirm.
 3. Once confirmed, either side can **Ask for a new time** up to 2 hours before. The other side accepts it or keeps the confirmed time.
 
-To try it, Seller 2 (`9000000003`) has an accepted aluminium listing with no time yet; its dealer is `9000000007`.
+To try it, the dealer `9000000007` has an accepted aluminium pickup with no time yet (under **My pickups**); the seller is `9000000003`.
 
 The seeded draft iron listing for `9000000002` is ready to have a photo added and be published. `9000000003` has an expired listing: open it and choose **Relist**.
 

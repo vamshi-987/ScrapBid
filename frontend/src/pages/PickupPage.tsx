@@ -94,7 +94,7 @@ export function PickupPage() {
             </small>
           </p>
         ) : (
-          <p>{pickup.my_role === "seller" ? t.proposeFirst : t.waitingForSeller}</p>
+          <p>{pickup.my_role === "dealer" ? t.proposeFirst : t.waitingForDealer}</p>
         )}
         {can("confirm") && (
           <button type="button" onClick={() => run(confirmSlot(pickup.id))} disabled={busy}>
