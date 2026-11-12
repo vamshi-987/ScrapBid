@@ -52,6 +52,13 @@ Expected output: `{"status":"ok","checks":{"database":"ok","storage":"ok"}}`. Th
 
 To compare offers, open an open listing. The **Offers** section lists them, highest estimate first. Seller 1's paper listing has 3 seeded offers. Choose **Accept this offer** and confirm. The listing moves to "Offer accepted", the other offers are marked not chosen, and the dealer gets a notification. Run `seed_demo` again to put the demo listing back to open.
 
+After an offer is accepted, open **Pickup details** on the listing (the dealer finds it under **My pickups** in the Buying view):
+1. The seller picks a date and a start time (IST) and proposes it.
+2. The dealer confirms it, or proposes another time for the seller to confirm.
+3. Once confirmed, either side can **Ask for a new time** up to 2 hours before. The other side accepts it or keeps the confirmed time.
+
+To try it, Seller 2 (`9000000003`) has an accepted aluminium listing with no time yet; its dealer is `9000000007`.
+
 The seeded draft iron listing for `9000000002` is ready to have a photo added and be published. `9000000003` has an expired listing: open it and choose **Relist**.
 
 ### Browsing listings as a dealer
@@ -223,6 +230,11 @@ All variables are in `.env.example` with safe local defaults. Never commit `.env
 | `LISTING_MAX_WEIGHT_KG` | `10000` | Largest declared weight for one category on a listing, in kg |
 | `LISTING_EXPIRY_DAYS` | `7` | Days after publishing before an open listing with no accepted offer expires |
 | `OFFER_EXPIRY_HOURS` | `24` | Hours an offer stays valid after it's made or last edited |
+| `PICKUP_SLOT_HOURS` | `2` | Length of a pickup window |
+| `PICKUP_DAY_START_HOUR`, `PICKUP_DAY_END_HOUR` | `8`, `20` | Pickup windows must fit between these hours (IST) |
+| `PICKUP_MIN_NOTICE_HOURS` | `2` | A pickup must start at least this many hours from now |
+| `PICKUP_MAX_DAYS_AHEAD` | `7` | A pickup can be booked at most this many days ahead |
+| `PICKUP_RESCHEDULE_DEADLINE_HOURS` | `2` | Requests to move a confirmed pickup close this many hours before it |
 | `MINIO_ROOT_USER`, `MINIO_ROOT_PASSWORD` | `scrapbid`, `scrapbid-secret` | Local only |
 | `MINIO_CONSOLE_PORT` | `9001` | Host port for the MinIO console |
 | `SCHEDULER_INTERVAL_SECONDS` | `300` | Seconds between scheduler runs. Must be positive. |

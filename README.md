@@ -51,7 +51,7 @@ Run `docker compose exec backend python manage.py seed_demo`, then log in at htt
 | Phone | Account |
 |---|---|
 | `9000000001` | Admin. Also opens Django admin at http://localhost/admin. |
-| `9000000002` | Seller 1 (Ameerpet): an open listing (paper and cardboard) and a draft iron listing to add a photo to and publish |
+| `9000000002` | Seller 1 (Ameerpet): an open listing (paper and cardboard), a draft iron listing to add a photo to and publish, and a cardboard pickup confirmed for tomorrow at 10:00 |
 | `9000000003` | Seller 2 (Secunderabad): an open listing with restricted e-waste and an appliance, an expired plastic listing to relist, and an aluminium listing with an accepted offer |
 | `9000000004` | Approved dealer who also sells (Ameerpet), with an open 350.5 kg bulk copper listing. Switches between the Selling and Buying views. |
 | `9000000005` | Dealer whose application is waiting for review (Kukatpally), with sample documents to approve in the admin |
@@ -123,6 +123,11 @@ The seed also adds scrap categories: paper, cardboard, iron, copper, aluminium, 
     - Every other offer is marked rejected ("another offer was accepted"), so it can come back if that dealer cancels. The accepted dealer is notified.
     - Only live offers from dealers who are still eligible can be accepted.
   - Offers expire after `OFFER_EXPIRY_HOURS` (24), because rates change daily. An offer past its time can't be accepted and stops locking the listing straight away; the scheduler then marks it expired. Once a listing has an active offer, the seller can't edit it. Offers close when the listing expires.
+- **Pickup times are agreed by both sides.**
+  - After accepting an offer, the seller proposes a 2-hour window: between 8 am and 8 pm IST, at least 2 hours from now and at most 7 days ahead.
+  - The dealer confirms it or proposes another time for the seller to confirm. The pickup is scheduled only once confirmed.
+  - Either side can then ask to move it, until 2 hours before the slot. The new time applies only if the other side accepts before the confirmed slot starts; otherwise the confirmed time stands.
+  - Every confirmation and accepted reschedule is in the audit log (with the old and new times), and the other side is notified. All the limits are config values.
 - **In-app notifications** (no SMS, WhatsApp or push in the MVP).
   - Sellers are notified of each new offer. The header shows an unread count, refreshed every 30 seconds while the tab is open.
   - Notifications store only the kind and record IDs. The message text comes from the app's strings (ready for other languages), and no personal data is copied into them.
