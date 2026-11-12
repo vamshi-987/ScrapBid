@@ -3,6 +3,7 @@ import { Link } from "react-router";
 
 import type { Me } from "../api/auth";
 import { apiFetch } from "../api/client";
+import { formatINR } from "../format/money";
 import { formatIST } from "../format/time";
 import { MyListings } from "../listings/MyListings";
 import { NearbyListings } from "../listings/NearbyListings";
@@ -56,6 +57,15 @@ export function HomePage({ me, view }: Props) {
               {strings.dealer.applicationStatus}
             </Link>
           )}
+        </section>
+      )}
+      {me?.suspension && (
+        <section className="card notice" role="status">
+          <p>
+            <strong>{strings.strikes.suspendedNotice}</strong>
+            <br />
+            {strings.strikes.suspendedDetail} {formatINR(me.suspension.fee_paise)}
+          </p>
         </section>
       )}
       {me?.blocked_until && (

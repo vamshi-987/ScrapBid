@@ -189,6 +189,7 @@ export const en = {
       already_published: "This listing is already published.",
       not_expired: "Only expired listings can be relisted.",
       blocked: "You can't publish while blocked for a missed pickup.",
+      suspended: "You can't publish while your account is suspended.",
       reason_required: "Give a reason for cancelling.",
       not_editable: "This listing can't be changed any more.",
       too_many: "This listing already has the maximum number of photos.",
@@ -230,6 +231,7 @@ export const en = {
       not_open: "This listing has already accepted an offer or is closed.",
       not_live: "This offer has expired or been withdrawn. Choose another.",
       dealer_unavailable: "This dealer can no longer take this pickup. Choose another offer.",
+      suspended: "You can't accept offers while your account is suspended.",
       error: "Something went wrong. Check your connection and try again.",
     },
     validUntil: "Valid until",
@@ -252,6 +254,7 @@ export const en = {
       wrong_categories: "Give one rate for each item.",
       rate_out_of_range: "A rate looks too high. Check the amount.",
       blocked: "You can't make offers while blocked for a missed pickup.",
+      suspended: "You can't make offers while your account is suspended.",
       not_found: "This listing isn't available to you.",
       error: "Something went wrong. Check your connection and try again.",
     },
@@ -278,6 +281,8 @@ export const en = {
       order_completed: "The pickup is complete",
       dispute_opened: "The seller disputed the weighing: an admin will review it",
       dispute_resolved: "An admin resolved the dispute",
+      suspended: "You're suspended from selling and buying",
+      suspension_lifted: "Your suspension was lifted",
     },
   },
   pickup: {
@@ -446,6 +451,9 @@ export const en = {
   strikes: {
     title: "Missed pickups",
     blockedNotice: "You're blocked until",
+    suspendedNotice: "Your account is suspended.",
+    suspendedDetail:
+      "You can't publish listings, accept offers or make offers until it's lifted. Fee to lift it:",
     blockedSeller: "You can't publish listings until then.",
     blockedDealer: "You can't make offers until then.",
     viewStrikes: "See details",

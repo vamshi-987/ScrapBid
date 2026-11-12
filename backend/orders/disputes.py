@@ -17,6 +17,7 @@ from listings.models import Listing, ListingStatus
 from listings.transitions import transition
 from notifications.models import NotificationKind
 from notifications.services import notify
+from orders.misuse import suspend_if_due
 from orders.models import DisputeOutcome, Order, OrderStatus, Party
 from orders.scheduling import party_of
 from orders.settlement import line_amount
@@ -147,6 +148,8 @@ def resolve_dispute(order, admin, *, outcome, note, upheld, amounts=None):
         locked.dispute_resolved_at = now
         locked.handover_code_hash = ""
         locked.save()
+        if upheld:
+            suspend_if_due(locked.dealer.user)
         for user in (locked.seller, locked.dealer.user):
             notify(
                 user,

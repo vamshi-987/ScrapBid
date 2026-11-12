@@ -11,7 +11,7 @@ from django.db import transaction
 from django.utils import timezone
 from PIL import Image
 
-from accounts.models import Role, User
+from accounts.models import Flag, FlagStatus, Role, Suspension, User
 from accounts.phone import mask_phone
 from dealers.models import DealerProfile, DealerStatus, DocumentType, IdType
 from dealers.services import can_authorise_ewaste, review_dealer, store_document
@@ -389,6 +389,8 @@ class Command(BaseCommand):
                     open_dispute(listing.orders.get(status="active"), listing.seller, reason)
             self.stdout.write(f"Disputes: {len(DEMO_DISPUTES)}")
 
+            self._seed_flag_and_suspension()
+
             for marker, dealer_reason, seller_reason in DEMO_CANCELLATIONS:
                 self._seed_cancellation(marker, dealer_reason, seller_reason)
             self.stdout.write(f"Cancellation histories: {len(DEMO_CANCELLATIONS)}")
@@ -522,6 +524,33 @@ class Command(BaseCommand):
         start = datetime.combine(day, time(hour), tzinfo=IST)
         propose_slot(order, order.dealer.user, start)
         confirm_slot(order, listing.seller)
+
+    def _seed_flag_and_suspension(self):
+        """A demo rate flag and a demo suspension, created directly: the seed has too few
+        dealers in one city to raise a flag from offers, and suspending an active demo
+        dealer would block the other demo flows."""
+        dealer = User.objects.get(phone="+919000000007")
+        paper = Category.objects.get(name="Paper")
+        Flag.objects.get_or_create(
+            user=dealer,
+            kind=Flag.RATE_OUTLIER,
+            category=paper,
+            status=FlagStatus.OPEN,
+            defaults={
+                "details": {
+                    "rate_paise": 1800,
+                    "peer_average_paise": 1400,
+                    "peers": 3,
+                    "above_percent": "28.6",
+                    "demo": True,
+                }
+            },
+        )
+        far_dealer = User.objects.get(phone="+919000000008")
+        if not Suspension.objects.filter(user=far_dealer, lifted_at=None).exists():
+            Suspension.objects.create(
+                user=far_dealer, reason="Demo: 3 upheld disputes", fee_paise=50000
+            )
 
     def _seed_weighing(self, marker, verified):
         """The dealer weighs at the pickup point, through the real weighing rules."""

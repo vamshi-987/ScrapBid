@@ -10,6 +10,7 @@ from django.conf import settings
 from django.db import IntegrityError, transaction
 from django.utils import timezone
 
+from accounts.models import is_suspended
 from listings.feed import visible_to_dealer
 from listings.models import Listing, ListingStatus, PricingUnit
 from notifications.models import NotificationKind
@@ -29,6 +30,7 @@ class OfferError(Exception):
         "wrong_categories": "Give exactly one rate for each category on the listing.",
         "rate_out_of_range": "A rate is too high. Check the amount.",
         "blocked": "You can't make offers while blocked for a missed pickup.",
+        "suspended": "You can't make offers while your account is suspended.",
     }
 
     def __init__(self, code):
@@ -75,6 +77,8 @@ def create_offer(dealer, listing_id, rates):
 
     if blocked_until(dealer.user):
         raise OfferError("blocked")
+    if is_suspended(dealer.user):
+        raise OfferError("suspended")
     try:
         with transaction.atomic():
             listing = _lock_open_listing(listing_id)
@@ -111,6 +115,8 @@ def _lock_live_offer(offer):
 
 def update_offer(offer, rates):
     """New rates for a live offer on an open listing. Resets the expiry: it's a fresh quote."""
+    if is_suspended(offer.dealer.user):
+        raise OfferError("suspended")
     with transaction.atomic():
         listing, locked = _lock_live_offer(offer)
         _check_rates(listing, rates)
@@ -143,6 +149,7 @@ def offers_for_seller(listing):
     from django.contrib.gis.db.models.functions import Distance
     from django.db.models import F
 
+    from accounts.models import Suspension
     from dealers.models import DealerStatus
     from offers.pricing import estimated_total_paise
 
@@ -153,6 +160,7 @@ def offers_for_seller(listing):
             dealer__status=DealerStatus.APPROVED,
             dealer__scale_certificate_expires_on__gte=timezone.localdate(),
         )
+        .exclude(dealer__user__in=Suspension.objects.filter(lifted_at=None).values("user"))
         .annotate(reach=Distance("dealer__location", listing.location))
         .filter(reach__lte=F("dealer__service_radius_km") * 1000)
         .select_related("dealer", "listing")

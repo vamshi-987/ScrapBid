@@ -1,3 +1,4 @@
+from django.conf import settings
 from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, PermissionsMixin
 from django.contrib.postgres.fields import ArrayField
 from django.db import models
@@ -95,3 +96,82 @@ class OtpChallenge(models.Model):
 
     def __str__(self):
         return f"OTP challenge {self.pk}"
+
+
+class Suspension(models.Model):
+    """Blocks selling and buying (publishing, accepting offers, making offers); login and
+    open orders carry on. Active until lifted. The fee to lift it is recorded here."""
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="suspensions"
+    )
+    reason = models.CharField(max_length=300)
+    fee_paise = models.PositiveBigIntegerField()
+    created_at = models.DateTimeField(auto_now_add=True)
+    lifted_at = models.DateTimeField(null=True, blank=True)
+    lifted_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="+",
+    )
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["user"], condition=models.Q(lifted_at=None), name="one_active_suspension"
+            )
+        ]
+
+    def __str__(self):
+        return f"Suspension {self.pk} for user {self.user_id}"
+
+
+class FlagStatus(models.TextChoices):
+    OPEN = "open", "Open"
+    CLOSED = "closed", "Closed"
+
+
+class Flag(models.Model):
+    """Something unusual about a user for an admin to review, e.g. a rate far above peers."""
+
+    RATE_OUTLIER = "rate_outlier"
+    KINDS = [(RATE_OUTLIER, "Rate far above peers")]
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="flags"
+    )
+    kind = models.CharField(max_length=30, choices=KINDS)
+    category = models.ForeignKey(
+        "listings.Category", on_delete=models.PROTECT, null=True, blank=True, related_name="+"
+    )
+    # Numbers behind the flag, e.g. {"rate_paise": 1800, "peer_average_paise": 1400, "peers": 3}.
+    details = models.JSONField(default=dict)
+    status = models.CharField(max_length=10, choices=FlagStatus.choices, default=FlagStatus.OPEN)
+    note = models.CharField(max_length=300, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    closed_at = models.DateTimeField(null=True, blank=True)
+    closed_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="+",
+    )
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["user", "kind", "category"],
+                condition=models.Q(status="open"),
+                name="one_open_flag",
+            )
+        ]
+
+    def __str__(self):
+        return f"{self.get_kind_display()} for user {self.user_id}"
+
+
+def is_suspended(user):
+    return Suspension.objects.filter(user=user, lifted_at=None).exists()

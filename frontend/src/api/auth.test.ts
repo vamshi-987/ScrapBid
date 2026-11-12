@@ -58,6 +58,7 @@ describe("verifyOtp", () => {
     roles: ["seller"],
     is_staff: false,
     blocked_until: null,
+    suspension: null,
   };
 
   it.each([
