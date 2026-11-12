@@ -1,3 +1,4 @@
+import type { Comparison, WeighChoice } from "../orders/weighing";
 import { apiFetch, postJson } from "./client";
 import type { ListingStatus, PricingUnit } from "./listings";
 
@@ -8,7 +9,8 @@ export type PickupAction =
   | "accept_reschedule"
   | "decline_reschedule"
   | "cancel"
-  | "check_in";
+  | "check_in"
+  | "weigh";
 
 export type Pickup = {
   id: number;
@@ -26,6 +28,11 @@ export type Pickup = {
     declared_weight_kg: string | null;
     declared_quantity: number | null;
     rate_paise: number;
+    verified_amount: string | null;
+    taken_amount: string | null;
+    comparison: "" | Comparison;
+    choice: "" | WeighChoice;
+    amount_paise: number | null;
   }[];
   slot_start: string | null;
   slot_end: string | null;
@@ -39,6 +46,11 @@ export type Pickup = {
   cancelled_by: "" | "seller" | "dealer";
   cancel_reason: string;
   no_show_party: "" | "seller" | "dealer";
+  weighed_at: string | null;
+  weighing_distance_m: number | null;
+  final_amount_paise: number | null;
+  scale_photo_url: string | null;
+  weight_tolerance_percent: number;
   status: "active" | "completed" | "cancelled";
   actions: PickupAction[];
 };
@@ -118,6 +130,23 @@ export function cancelPickup(id: number, reason: string) {
 
 export function checkIn(id: number, latitude: number, longitude: number) {
   return pickupResult(postJson(`/api/orders/${id}/check-in`, { latitude, longitude }));
+}
+
+export type Weighing = {
+  latitude: number;
+  longitude: number;
+  photo: Blob;
+  lines: { category: number; verified: string; choice: WeighChoice | null }[];
+};
+
+/** Records the weighing. The server works out every amount; none is sent. */
+export function weighPickup(id: number, weighing: Weighing) {
+  const body = new FormData();
+  body.append("photo", weighing.photo, "scale.jpg");
+  body.append("latitude", String(weighing.latitude));
+  body.append("longitude", String(weighing.longitude));
+  body.append("lines", JSON.stringify(weighing.lines));
+  return pickupResult(apiFetch(`/api/orders/${id}/weigh`, { method: "POST", body }));
 }
 
 export type Strike = {

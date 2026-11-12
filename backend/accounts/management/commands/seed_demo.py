@@ -380,6 +380,8 @@ class Command(BaseCommand):
                 return
             for photo in existing.photos.all():
                 default_storage.delete(photo.file.name)
+            for order in existing.orders.exclude(scale_photo=""):
+                default_storage.delete(order.scale_photo.name)
             existing.orders.all().delete()
             existing.offers.all().delete()
             existing.delete()

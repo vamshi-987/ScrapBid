@@ -328,7 +328,7 @@ def test_each_side_sees_its_role_and_available_actions(deal):
     propose(dealer, order, ist(12, 10, 0))
     assert seller.get(url(order)).json()["actions"] == ["propose", "confirm", "cancel"]
     seller.post(url(order, "/slot/confirm"))
-    assert dealer.get(url(order)).json()["actions"] == ["cancel", "request_reschedule"]
+    assert dealer.get(url(order)).json()["actions"] == ["cancel", "weigh", "request_reschedule"]
     reschedule(dealer, order, ist(13, 10, 0))
     assert seller.get(url(order)).json()["actions"] == [
         "cancel",
