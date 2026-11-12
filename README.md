@@ -51,7 +51,7 @@ Run `docker compose exec backend python manage.py seed_demo`, then log in at htt
 | Phone | Account |
 |---|---|
 | `9000000001` | Admin. Also opens Django admin at http://localhost/admin. |
-| `9000000002` | Seller 1 (Ameerpet): an open listing (paper and cardboard), a draft iron listing to add a photo to and publish, a cardboard pickup confirmed for tomorrow at 10:00, and a plastic listing whose dealer cancelled before the seller withdrew it |
+| `9000000002` | Seller 1 (Ameerpet): an open listing (paper and cardboard), a draft iron listing to add a photo to and publish, a cardboard pickup confirmed for tomorrow at 10:00, a plastic listing whose dealer cancelled before the seller withdrew it, and an iron pickup in dispute |
 | `9000000003` | Seller 2 (Secunderabad): an open listing with restricted e-waste and an appliance, an expired plastic listing to relist, an aluminium listing with an accepted offer, and a paper pickup already weighed (waiting for the seller to confirm) |
 | `9000000004` | Approved dealer who also sells (Ameerpet), with an open 350.5 kg bulk copper listing. Switches between the Selling and Buying views. |
 | `9000000005` | Dealer whose application is waiting for review (Kukatpally), with sample documents to approve in the admin |
@@ -146,6 +146,12 @@ The seed also adds scrap categories: paper, cardboard, iron, copper, aluminium, 
   - The dealer pays the seller directly (cash or UPI), then enters the code and the payment method. After 5 wrong codes (`HANDOVER_CODE_MAX_ATTEMPTS`) the code is locked until the seller shows a fresh one.
   - The listing then becomes completed. The order records the method and the amount paid, which is always the server's final amount; any amount sent by the app is ignored. Contact details stop being shared, and the seller is notified. A retried completion changes nothing.
   - No payment gateway: the app only records the payment.
+- **Disputes.**
+  - Instead of confirming, the seller can dispute the weighing, with a reason. The listing moves to disputed, any code already shown stops working, and nobody can complete the pickup. The dealer is notified.
+  - Admins open the order in Django admin (filter by listing status "disputed") and choose **Resolve dispute**. The page shows the seller's reason, the scale photo, and the declared, verified and taken amounts.
+  - The admin completes the order at the measured amounts, completes it at amounts they set (each line is that amount × the agreed rate, rounded half up; the rate never changes), or cancels it. A note is required and is shown to both sides.
+  - The admin also records whether the dispute is upheld (the seller was right), which counts against the dealer. The dealer's original reading stays on the order, and the audit log keeps the old and new totals.
+  - The decision ends the order without the handover code, closes contact details and notifies both sides. An admin cancellation doesn't count as a cancellation by either side. When an admin completes the order, the final amount is what the dealer owes; no payment method is recorded.
 - **Cancellations and no-shows.**
   - Either side can cancel before pickup, with a reason. If the dealer cancels, the listing reopens with a fresh 7-day window, and the other offers come back if they're still within their time. If the seller cancels, the listing is cancelled. A seller can also cancel a draft or open listing.
   - During the confirmed slot, the dealer checks in from the pickup point. This uses the phone's GPS and must be within 200 m (`PICKUP_MAX_DISTANCE_METERS`).
