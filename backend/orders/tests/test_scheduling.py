@@ -26,17 +26,6 @@ def ist(day, hour, minute=0):
     return datetime(2026, 11, day, hour, minute, tzinfo=IST)
 
 
-@pytest.fixture
-def clock(monkeypatch):
-    """Controls timezone.now() for the test. Starts at NOW; set clock.now to move it."""
-
-    class Clock:
-        now = NOW
-
-    monkeypatch.setattr(timezone, "now", lambda: Clock.now)
-    return Clock
-
-
 # --- Slot rules ------------------------------------------------------------
 
 
@@ -333,15 +322,19 @@ def test_each_side_sees_its_role_and_available_actions(deal):
 
     assert (dealer.get(url(order)).json()["my_role"], dealer.get(url(order)).json()["actions"]) == (
         "dealer",
-        ["propose"],
+        ["propose", "cancel"],
     )
-    assert seller.get(url(order)).json()["actions"] == []
+    assert seller.get(url(order)).json()["actions"] == ["cancel"]
     propose(dealer, order, ist(12, 10, 0))
-    assert seller.get(url(order)).json()["actions"] == ["propose", "confirm"]
+    assert seller.get(url(order)).json()["actions"] == ["propose", "confirm", "cancel"]
     seller.post(url(order, "/slot/confirm"))
-    assert dealer.get(url(order)).json()["actions"] == ["request_reschedule"]
+    assert dealer.get(url(order)).json()["actions"] == ["cancel", "request_reschedule"]
     reschedule(dealer, order, ist(13, 10, 0))
-    assert seller.get(url(order)).json()["actions"] == ["decline_reschedule", "accept_reschedule"]
+    assert seller.get(url(order)).json()["actions"] == [
+        "cancel",
+        "decline_reschedule",
+        "accept_reschedule",
+    ]
 
 
 def test_pickup_has_no_exact_address_or_phone(deal):

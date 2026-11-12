@@ -18,6 +18,8 @@ class ListingError(Exception):
         "needs_items": "Add at least one category.",
         "needs_photo": "Add at least one photo before publishing.",
         "not_expired": "Only expired listings can be relisted.",
+        "blocked": "You can't publish listings while blocked for a missed pickup.",
+        "reason_required": "Give a reason for cancelling.",
     }
 
     def __init__(self, code):
@@ -88,6 +90,10 @@ def publish_listing(listing, actor):
             raise ListingError("needs_items")
         if not locked.photos.exists():
             raise ListingError("needs_photo")
+        from orders.endings import blocked_until
+
+        if blocked_until(actor):
+            raise ListingError("blocked")
         transition(locked, ListingStatus.OPEN, actor)
     return locked
 
@@ -160,3 +166,19 @@ def relist(listing):
             for item in source.items.all()
         )
     return draft, True
+
+
+def cancel_listing(listing, actor, reason):
+    """The seller withdraws a draft or open listing, with a reason. Its active offers close."""
+    reason = (reason or "").strip()
+    if not reason:
+        raise ListingError("reason_required")
+    with transaction.atomic():
+        locked = Listing.objects.select_for_update().get(pk=listing.pk)
+        if locked.status not in (ListingStatus.DRAFT, ListingStatus.OPEN):
+            raise ListingError("not_editable")
+        transition(locked, ListingStatus.CANCELLED, actor, reason=f"Seller cancelled: {reason}")
+        locked.offers.filter(status="active").update(
+            status="rejected", rejection_reason="listing_cancelled", updated_at=timezone.now()
+        )
+    return locked

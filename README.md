@@ -51,7 +51,7 @@ Run `docker compose exec backend python manage.py seed_demo`, then log in at htt
 | Phone | Account |
 |---|---|
 | `9000000001` | Admin. Also opens Django admin at http://localhost/admin. |
-| `9000000002` | Seller 1 (Ameerpet): an open listing (paper and cardboard), a draft iron listing to add a photo to and publish, and a cardboard pickup confirmed for tomorrow at 10:00 |
+| `9000000002` | Seller 1 (Ameerpet): an open listing (paper and cardboard), a draft iron listing to add a photo to and publish, a cardboard pickup confirmed for tomorrow at 10:00, and a plastic listing whose dealer cancelled before the seller withdrew it |
 | `9000000003` | Seller 2 (Secunderabad): an open listing with restricted e-waste and an appliance, an expired plastic listing to relist, and an aluminium listing with an accepted offer |
 | `9000000004` | Approved dealer who also sells (Ameerpet), with an open 350.5 kg bulk copper listing. Switches between the Selling and Buying views. |
 | `9000000005` | Dealer whose application is waiting for review (Kukatpally), with sample documents to approve in the admin |
@@ -128,6 +128,12 @@ The seed also adds scrap categories: paper, cardboard, iron, copper, aluminium, 
   - The seller confirms it or proposes another time for the dealer to confirm. The pickup is scheduled only once confirmed.
   - Either side can then ask to move it, until 2 hours before the slot. The new time applies only if the other side accepts before the confirmed slot starts; otherwise the confirmed time stands.
   - Every confirmation and accepted reschedule is in the audit log (with the old and new times), and the other side is notified. All the limits are config values.
+- **Cancellations and no-shows.**
+  - Either side can cancel before pickup, with a reason. If the dealer cancels, the listing reopens with a fresh 7-day window, and the other offers come back if they're still within their time. If the seller cancels, the listing is cancelled. A seller can also cancel a draft or open listing.
+  - During the confirmed slot, the dealer checks in from the pickup point. This uses the phone's GPS and must be within 200 m (`PICKUP_MAX_DISTANCE_METERS`).
+  - 30 minutes after a confirmed slot ends with no pickup, the scheduler records a no-show. If the dealer checked in, the seller missed it; otherwise the dealer did.
+  - The side that missed it gets a strike and a 7-day block: a blocked seller can't publish, and a blocked dealer can't make offers.
+  - A strike can be challenged within 48 hours. Admins see every case with the check-in evidence, and can uphold the strike or remove it (lifting the block). Cancellation and no-show counts appear on each user in the admin.
 - **Contact details are shared only within an open order.**
   - Once an offer is accepted, the dealer sees the exact pickup address (with an "Open in maps" link) and the seller's phone. The seller sees the dealer's phone.
   - Nobody else ever sees them: not other dealers, other sellers, or admins using the app.

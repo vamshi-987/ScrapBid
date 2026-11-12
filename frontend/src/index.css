@@ -341,3 +341,13 @@ button.link {
   background: var(--bg);
   border: 1px solid var(--border);
 }
+
+textarea {
+  font: inherit;
+  min-height: 5rem;
+  padding: 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+  background: var(--bg);
+  color: var(--text);
+}

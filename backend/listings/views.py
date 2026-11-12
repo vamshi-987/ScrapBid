@@ -143,6 +143,24 @@ class ListingOffersForSellerView(APIView):
         return Response(SellerOfferSerializer(offers_for_seller(listing), many=True).data)
 
 
+class ListingCancelView(APIView):
+    """The seller withdraws a draft or open listing, with a reason."""
+
+    permission_classes = [HasRole(Role.SELLER)]
+
+    def post(self, request, listing_id):
+        listing = own_listing(request, listing_id)
+        try:
+            services.cancel_listing(listing, request.user, request.data.get("reason", ""))
+        except services.ListingError as error:
+            if error.code == "reason_required":
+                return Response(
+                    {"detail": str(error), "code": error.code}, status=status.HTTP_400_BAD_REQUEST
+                )
+            return listing_error(error)
+        return Response(ListingDetailSerializer(own_listing(request, listing_id)).data)
+
+
 class ListingRelistView(APIView):
     """Turn an expired listing into a new draft. Safe to retry."""
 

@@ -2,7 +2,13 @@ import { apiFetch, postJson } from "./client";
 import type { ListingStatus, PricingUnit } from "./listings";
 
 export type PickupAction =
-  "propose" | "confirm" | "request_reschedule" | "accept_reschedule" | "decline_reschedule";
+  | "propose"
+  | "confirm"
+  | "request_reschedule"
+  | "accept_reschedule"
+  | "decline_reschedule"
+  | "cancel"
+  | "check_in";
 
 export type Pickup = {
   id: number;
@@ -28,6 +34,12 @@ export type Pickup = {
   reschedule_start: string | null;
   reschedule_end: string | null;
   reschedule_requested_by: "" | "seller" | "dealer";
+  dealer_checked_in_at: string | null;
+  dealer_check_in_distance_m: number | null;
+  cancelled_by: "" | "seller" | "dealer";
+  cancel_reason: string;
+  no_show_party: "" | "seller" | "dealer";
+  status: "active" | "completed" | "cancelled";
   actions: PickupAction[];
 };
 
@@ -98,4 +110,47 @@ export async function fetchContact(id: number): Promise<Contact | "closed" | nul
 /** A map search link for the pickup point (opened only when the dealer taps it). */
 export function mapsLink(latitude: number, longitude: number): string {
   return `https://www.google.com/maps/search/?api=1&query=${latitude},${longitude}`;
+}
+
+export function cancelPickup(id: number, reason: string) {
+  return pickupResult(postJson(`/api/orders/${id}/cancel`, { reason }));
+}
+
+export function checkIn(id: number, latitude: number, longitude: number) {
+  return pickupResult(postJson(`/api/orders/${id}/check-in`, { latitude, longitude }));
+}
+
+export type Strike = {
+  id: number;
+  order: number;
+  party: "seller" | "dealer";
+  status: "active" | "upheld" | "removed";
+  blocked_until: string;
+  challenge_reason: string;
+  challenged_at: string | null;
+  created_at: string;
+  can_challenge: boolean;
+};
+
+export async function fetchStrikes(): Promise<Strike[]> {
+  try {
+    const response = await apiFetch("/api/strikes");
+    return response.ok ? ((await response.json()) as Strike[]) : [];
+  } catch {
+    return [];
+  }
+}
+
+export async function challengeStrike(
+  id: number,
+  reason: string,
+): Promise<{ ok: true } | { ok: false; reason: string }> {
+  try {
+    const response = await postJson(`/api/strikes/${id}/challenge`, { reason });
+    if (response.ok) return { ok: true };
+    const body = (await response.json().catch(() => ({}))) as { code?: unknown };
+    return { ok: false, reason: typeof body.code === "string" ? body.code : "error" };
+  } catch {
+    return { ok: false, reason: "error" };
+  }
 }

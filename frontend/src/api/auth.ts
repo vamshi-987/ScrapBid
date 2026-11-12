@@ -1,6 +1,13 @@
 import { apiFetch, postJson } from "./client";
 
-export type Me = { id: number; phone: string; roles: string[]; is_staff: boolean };
+export type Me = {
+  id: number;
+  phone: string;
+  roles: string[];
+  is_staff: boolean;
+  /** End of a no-show block: blocked sellers can't publish, dealers can't offer. */
+  blocked_until: string | null;
+};
 
 export type RequestOtpResult =
   | { ok: true; expiresIn: number }

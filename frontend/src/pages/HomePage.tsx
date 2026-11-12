@@ -3,6 +3,7 @@ import { Link } from "react-router";
 
 import type { Me } from "../api/auth";
 import { apiFetch } from "../api/client";
+import { formatIST } from "../format/time";
 import { MyListings } from "../listings/MyListings";
 import { NearbyListings } from "../listings/NearbyListings";
 import { MyOffers } from "../offers/MyOffers";
@@ -55,6 +56,18 @@ export function HomePage({ me, view }: Props) {
               {strings.dealer.applicationStatus}
             </Link>
           )}
+        </section>
+      )}
+      {me?.blocked_until && (
+        <section className="card notice" role="status">
+          <p>
+            <strong>
+              {strings.strikes.blockedNotice} {formatIST(me.blocked_until)}
+            </strong>
+            <br />
+            {view === "buying" ? strings.strikes.blockedDealer : strings.strikes.blockedSeller}
+          </p>
+          <Link to="/strikes">{strings.strikes.viewStrikes}</Link>
         </section>
       )}
       {me && view === "selling" && <MyListings />}

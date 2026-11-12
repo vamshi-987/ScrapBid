@@ -1,5 +1,5 @@
 from django.conf import settings
-from django.db import models
+from django.contrib.gis.db import models
 
 from dealers.models import DealerProfile
 from listings.models import Category, Listing
@@ -50,6 +50,16 @@ class Order(models.Model):
     reschedule_start = models.DateTimeField(null=True, blank=True)
     reschedule_end = models.DateTimeField(null=True, blank=True)
     reschedule_requested_by = models.CharField(max_length=10, choices=Party.choices, blank=True)
+    # Dealer's GPS check-in during the slot: the evidence for who missed a pickup.
+    dealer_checked_in_at = models.DateTimeField(null=True, blank=True)
+    dealer_check_in_location = models.PointField(geography=True, srid=4326, null=True, blank=True)
+    dealer_check_in_distance_m = models.PositiveIntegerField(null=True, blank=True)
+    # How the order ended, if it was cancelled.
+    cancelled_by = models.CharField(max_length=10, choices=Party.choices, blank=True)
+    cancel_reason = models.CharField(max_length=300, blank=True)
+    cancelled_at = models.DateTimeField(null=True, blank=True)
+    # Set by the no-show job: which side missed the confirmed slot.
+    no_show_party = models.CharField(max_length=10, choices=Party.choices, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -83,3 +93,34 @@ class OrderItem(models.Model):
 
     def __str__(self):
         return f"{self.category} on order {self.order_id}"
+
+
+class StrikeStatus(models.TextChoices):
+    ACTIVE = "active", "Active"
+    UPHELD = "upheld", "Upheld by an admin"
+    REMOVED = "removed", "Removed by an admin"
+
+
+class NoShowStrike(models.Model):
+    """A missed confirmed pickup. Blocks the user until `blocked_until` unless an admin
+    removes it. The user may challenge it within STRIKE_CHALLENGE_HOURS."""
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="no_show_strikes"
+    )
+    order = models.OneToOneField(Order, on_delete=models.PROTECT, related_name="strike")
+    party = models.CharField(max_length=10, choices=Party.choices)
+    blocked_until = models.DateTimeField()
+    status = models.CharField(
+        max_length=10, choices=StrikeStatus.choices, default=StrikeStatus.ACTIVE
+    )
+    challenge_reason = models.CharField(max_length=500, blank=True)
+    challenged_at = models.DateTimeField(null=True, blank=True)
+    resolved_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name="+"
+    )
+    resolved_at = models.DateTimeField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"No-show strike {self.pk} ({self.party}) for order {self.order_id}"

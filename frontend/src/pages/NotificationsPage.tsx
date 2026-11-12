@@ -17,6 +17,7 @@ function linkFor(notification: AppNotification): string {
   if (notification.kind === "new_offer" && notification.data.listing_id) {
     return `/listings/${notification.data.listing_id}`;
   }
+  if (notification.kind === "no_show_recorded") return "/strikes";
   if (notification.data.order_id) return `/orders/${notification.data.order_id}`;
   return "/";
 }
