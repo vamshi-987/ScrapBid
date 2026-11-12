@@ -186,7 +186,7 @@ def test_seeded_offers_give_sellers_notifications_without_duplicates():
         phone: Notification.objects.filter(user__phone=phone).count()
         for phone in ("+919000000002", "+919000000003", "+919000000004")
     }
-    assert by_seller == {"+919000000002": 11, "+919000000003": 6, "+919000000004": 2}
+    assert by_seller == {"+919000000002": 14, "+919000000003": 6, "+919000000004": 2}
     assert not Notification.objects.filter(read_at__isnull=False).exists()
 
 

@@ -252,6 +252,17 @@ DEMO_LISTINGS = [
         "photos": 1,
         "status": ListingStatus.DISPUTED,  # weighed, then disputed by the seller
     },
+    {
+        "phone": "+919000000002",
+        "address_line": "Demo listing 11: 8-2-120, Ameerpet Main Road",
+        "locality": "Ameerpet",
+        "pincode": "500016",
+        "latitude": 17.4370,
+        "longitude": 78.4475,
+        "items": [("Cardboard", "20", None)],
+        "photos": 1,
+        "status": ListingStatus.CANCELLED,  # weighed short and denied by the dealer
+    },
 ]
 
 # Offers on the open demo listings: (listing marker, dealer phone, {category: paise}).
@@ -270,6 +281,7 @@ DEMO_OFFERS = [
     ("Demo listing 8:", "+919000000006", {"Plastic": 1100}),
     ("Demo listing 9:", "+919000000007", {"Paper": 1500}),
     ("Demo listing 10:", "+919000000006", {"Iron": 3200}),
+    ("Demo listing 11:", "+919000000006", {"Cardboard": 1000}),
 ]
 
 # Offers the seller has accepted: (listing marker, dealer phone).
@@ -279,6 +291,7 @@ DEMO_ACCEPTED = [
     ("Demo listing 8:", "+919000000007"),
     ("Demo listing 9:", "+919000000007"),
     ("Demo listing 10:", "+919000000006"),
+    ("Demo listing 11:", "+919000000006"),
 ]
 
 # Cancel history: (listing marker, dealer's reason, then the seller's reason).
@@ -290,10 +303,16 @@ DEMO_SCHEDULED = [
     ("Demo listing 7:", 1, 10),
     ("Demo listing 9:", 1, 12),
     ("Demo listing 10:", 1, 14),
+    ("Demo listing 11:", 1, 16),
 ]
 
 # Scheduled pickups the dealer has weighed: (listing marker, {category: verified kg}).
-DEMO_WEIGHED = [("Demo listing 9:", {"Paper": "26"}), ("Demo listing 10:", {"Iron": "29"})]
+# Values are (verified, choice); a short weight beyond the tolerance needs a choice.
+DEMO_WEIGHED = [
+    ("Demo listing 9:", {"Paper": ("26", None)}),
+    ("Demo listing 10:", {"Iron": ("29", None)}),
+    ("Demo listing 11:", {"Cardboard": ("15", "deny")}),
+]
 
 # Weighed pickups the seller disputed: (listing marker, seller's reason).
 DEMO_DISPUTES = [("Demo listing 10:", "My own scale showed 34 kg")]
@@ -519,7 +538,11 @@ class Command(BaseCommand):
             longitude=listing.location.x,
             photo=ContentFile(buffer.getvalue(), name="scale.jpg"),
             lines=[
-                {"category": item.category_id, "verified": verified[item.category.name]}
+                {
+                    "category": item.category_id,
+                    "verified": verified[item.category.name][0],
+                    "choice": verified[item.category.name][1],
+                }
                 for item in order.items.select_related("category")
             ],
         )

@@ -75,6 +75,8 @@ Run `seed_demo` again to put it back.
 
 To try a dispute, use the same weighed paper pickup: as the seller, choose **The weighing looks wrong: dispute it** and give a reason. To resolve one, log in as the admin `9000000001`, open http://localhost/admin/orders/order/, filter by listing status "disputed", open the order and choose **Resolve dispute**. Seller 1's iron pickup (`9000000002`, dealer `9000000006`) is already in dispute. Pick an outcome, say whether it's upheld, add a note and submit. Run `seed_demo` again to put both back.
 
+To see the misuse stats, open a user in the admin (http://localhost/admin/accounts/user/, search by the exact number, e.g. `+919000000006`). The seed gives dealer `9000000006` two weighed pickups (iron 30 → 29 kg, disputed; cardboard 20 → 15 kg, denied): 1 denial (50.0%), an average variance of −14.2% and 1 dispute.
+
 Missed pickups are recorded by the scheduler 30 minutes after a confirmed slot ends. If the dealer checked in, the seller missed it; otherwise the dealer did. That side gets a strike and a 7-day block, and can challenge it on **Missed pickups** (`/strikes`) within 48 hours. Admins review strikes under **No show strikes** in the admin and choose **Uphold** or **Remove** (removing lifts the block).
 
 To try a no-show without waiting, move the seeded pickup's slot into the past and run the job:
