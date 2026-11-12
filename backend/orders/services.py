@@ -9,6 +9,7 @@ from django.contrib.gis.db.models.functions import Distance
 from django.db import transaction
 from django.utils import timezone
 
+from accounts.models import is_suspended
 from dealers.models import DealerStatus
 from listings.models import Listing, ListingStatus
 from listings.transitions import transition
@@ -26,6 +27,7 @@ class AcceptError(Exception):
         "not_open": "This listing has already accepted an offer or is closed.",
         "not_live": "This offer has expired or been withdrawn.",
         "dealer_unavailable": "This dealer can no longer take this pickup.",
+        "suspended": "You can't accept offers while your account is suspended.",
     }
 
     def __init__(self, code):
@@ -35,7 +37,7 @@ class AcceptError(Exception):
 
 def _dealer_still_eligible(dealer, listing):
     """Approved, valid scale certificate, and the service area still covers the address."""
-    if dealer.status != DealerStatus.APPROVED:
+    if dealer.status != DealerStatus.APPROVED or is_suspended(dealer.user):
         return False
     if dealer.scale_certificate_expires_on < timezone.localdate():
         return False
@@ -62,6 +64,8 @@ def accept_offer(seller, offer):
             return Order.objects.get(offer=locked), False
         if listing.status != ListingStatus.OPEN:
             raise AcceptError("not_open")
+        if is_suspended(seller):
+            raise AcceptError("suspended")
         if not locked.is_live:
             raise AcceptError("not_live")
         if not _dealer_still_eligible(locked.dealer, listing):

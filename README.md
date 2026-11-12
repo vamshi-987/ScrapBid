@@ -162,6 +162,11 @@ The seed also adds scrap categories: paper, cardboard, iron, copper, aluminium, 
   - Variance is (verified − declared) ÷ declared for each weighed per-kg line, averaged, so a negative value means less was measured than declared. Counts of per-item goods are left out.
   - A short-weight denial isn't counted as a cancellation, because it carries no penalty.
   - The numbers are computed in the database and appear only in the admin, never in the app's API.
+- **Rate flags and suspensions.**
+  - A scheduled job flags a dealer whose average rate for a category over the last 30 days is more than 20% above the average of the other dealers. Each dealer counts once, by their own average, and at least 3 other dealers are needed. Withdrawn offers are left out. Admins review flags in the admin and close them with a note; a dealer and category get at most one flag in 30 days.
+  - A dealer's 3rd upheld dispute (since their last suspension) suspends them. A suspended user can still log in and finish open pickups, but can't publish listings, accept offers, or make or edit offers, and sellers no longer see their offers. The user is notified.
+  - The fee to lift a suspension is ₹500, doubling from the 3rd suspension (₹500, ₹500, ₹1,000, ₹2,000…). For now an admin lifts suspensions in the admin; paying the fee in the app comes with online payments.
+  - All thresholds and amounts are config values.
 - **Contact details are shared only within an open order.**
   - Once an offer is accepted, the dealer sees the exact pickup address (with an "Open in maps" link) and the seller's phone. The seller sees the dealer's phone.
   - Nobody else ever sees them: not other dealers, other sellers, or admins using the app.

@@ -1,8 +1,10 @@
 from django import forms
 from django.contrib import admin, messages
+from django.contrib.admin.helpers import ActionForm
+from django.utils import timezone
 from django.utils.html import format_html, format_html_join
 
-from accounts.models import Role, User
+from accounts.models import Flag, FlagStatus, Role, Suspension, User
 from accounts.phone import mask_phone
 
 
@@ -96,3 +98,84 @@ class UserAdmin(admin.ModelAdmin):
     def reactivate(self, request, queryset):
         count = queryset.update(is_active=True)
         self.message_user(request, f"Reactivated {count} account(s).", messages.SUCCESS)
+
+
+class FlagActionForm(ActionForm):
+    note = forms.CharField(required=False, max_length=300, label="Note (needed to close)")
+
+
+@admin.register(Flag)
+class FlagAdmin(admin.ModelAdmin):
+    """Unusual activity for admins to review. Close a flag with a note once reviewed."""
+
+    action_form = FlagActionForm
+    actions = ["close"]
+    list_display = ["id", "user_phone", "kind", "category", "summary", "status", "created_at"]
+    list_filter = ["status", "kind"]
+    fields = ["user_phone", "kind", "category", "summary", "status", "note", "closed_at"]
+    readonly_fields = fields
+
+    @admin.display(description="User")
+    def user_phone(self, flag):
+        return mask_phone(flag.user.phone)
+
+    @admin.display(description="Details")
+    def summary(self, flag):
+        d = flag.details
+        if flag.kind == Flag.RATE_OUTLIER and d:
+            return (
+                f"{d['rate_paise']} paise vs peer average {d['peer_average_paise']} "
+                f"({d['above_percent']}% above, {d['peers']} peers)"
+            )
+        return "-"
+
+    def has_add_permission(self, request):
+        return False
+
+    def has_change_permission(self, request, obj=None):
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        return False
+
+    @admin.action(description="Close selected flags (note needed)")
+    def close(self, request, queryset):
+        note = request.POST.get("note", "").strip()
+        if not note:
+            self.message_user(request, "Add a note to close flags.", messages.ERROR)
+            return
+        count = queryset.filter(status=FlagStatus.OPEN).update(
+            status=FlagStatus.CLOSED, note=note, closed_at=timezone.now(), closed_by=request.user
+        )
+        self.message_user(request, f"Closed {count} flag(s).", messages.SUCCESS)
+
+
+@admin.register(Suspension)
+class SuspensionAdmin(admin.ModelAdmin):
+    """Suspensions from selling and buying, with the fee to lift them."""
+
+    actions = ["lift"]
+    list_display = ["id", "user_phone", "reason", "fee_paise", "created_at", "lifted_at"]
+    list_filter = [("lifted_at", admin.EmptyFieldListFilter)]
+    fields = ["user_phone", "reason", "fee_paise", "created_at", "lifted_at", "lifted_by"]
+    readonly_fields = fields
+
+    @admin.display(description="User")
+    def user_phone(self, suspension):
+        return mask_phone(suspension.user.phone)
+
+    def has_add_permission(self, request):
+        return False
+
+    def has_change_permission(self, request, obj=None):
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        return False
+
+    @admin.action(description="Lift selected suspensions")
+    def lift(self, request, queryset):
+        from orders.misuse import lift_suspension
+
+        count = sum(lift_suspension(suspension, request.user) for suspension in queryset)
+        self.message_user(request, f"Lifted {count} suspension(s).", messages.SUCCESS)

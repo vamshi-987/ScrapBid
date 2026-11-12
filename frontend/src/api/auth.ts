@@ -7,6 +7,8 @@ export type Me = {
   is_staff: boolean;
   /** End of a no-show block: blocked sellers can't publish, dealers can't offer. */
   blocked_until: string | null;
+  /** Active suspension: selling and buying are blocked until it's lifted. */
+  suspension: { since: string; fee_paise: number } | null;
 };
 
 export type RequestOtpResult =

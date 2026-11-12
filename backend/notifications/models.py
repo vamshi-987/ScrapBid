@@ -19,6 +19,8 @@ class NotificationKind(models.TextChoices):
     ORDER_COMPLETED = "order_completed", "The pickup is complete"
     DISPUTE_OPENED = "dispute_opened", "The seller disputed the weighing"
     DISPUTE_RESOLVED = "dispute_resolved", "An admin resolved the dispute"
+    SUSPENDED = "suspended", "You're suspended from selling and buying"
+    SUSPENSION_LIFTED = "suspension_lifted", "Your suspension was lifted"
 
 
 class Notification(models.Model):

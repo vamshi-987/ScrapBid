@@ -30,10 +30,11 @@ class OtpVerifySerializer(serializers.Serializer):
 class MeSerializer(serializers.ModelSerializer):
     roles = serializers.SerializerMethodField()
     blocked_until = serializers.SerializerMethodField()
+    suspension = serializers.SerializerMethodField()
 
     class Meta:
         model = User
-        fields = ["id", "phone", "roles", "is_staff", "blocked_until"]
+        fields = ["id", "phone", "roles", "is_staff", "blocked_until", "suspension"]
 
     def get_blocked_until(self, user):
         """End of a no-show block, if any: blocked sellers can't publish, dealers can't offer."""
@@ -41,6 +42,18 @@ class MeSerializer(serializers.ModelSerializer):
 
         moment = blocked_until(user)
         return serializers.DateTimeField().to_representation(moment) if moment else None
+
+    def get_suspension(self, user):
+        """An active suspension (selling and buying blocked) and the fee to lift it."""
+        from accounts.models import Suspension
+
+        active = Suspension.objects.filter(user=user, lifted_at=None).first()
+        if not active:
+            return None
+        return {
+            "since": serializers.DateTimeField().to_representation(active.created_at),
+            "fee_paise": active.fee_paise,
+        }
 
     def get_roles(self, user):
         return [*user.roles, "admin"] if user.is_staff else list(user.roles)

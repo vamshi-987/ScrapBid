@@ -75,6 +75,8 @@ Run `seed_demo` again to put it back.
 
 To try a dispute, use the same weighed paper pickup: as the seller, choose **The weighing looks wrong: dispute it** and give a reason. To resolve one, log in as the admin `9000000001`, open http://localhost/admin/orders/order/, filter by listing status "disputed", open the order and choose **Resolve dispute**. Seller 1's iron pickup (`9000000002`, dealer `9000000006`) is already in dispute. Pick an outcome, say whether it's upheld, add a note and submit. Run `seed_demo` again to put both back.
 
+Flags and suspensions are under **Flags** and **Suspensions** in the admin. The seed has an open rate flag on dealer `9000000007` and a suspension on dealer `9000000008`. Both are demo records created directly, because the seed has too few dealers in one city to raise a real flag and suspending an active demo dealer would block the other flows. Close a flag with the **Close selected flags** action and a note; lift a suspension with **Lift selected suspensions**. Log in as `9000000008` to see the suspension notice on the home page. A real suspension happens automatically on a dealer's 3rd upheld dispute (see the dispute steps above).
+
 To see the misuse stats, open a user in the admin (http://localhost/admin/accounts/user/, search by the exact number, e.g. `+919000000006`). The seed gives dealer `9000000006` two weighed pickups (iron 30 → 29 kg, disputed; cardboard 20 → 15 kg, denied): 1 denial (50.0%), an average variance of −14.2% and 1 dispute.
 
 Missed pickups are recorded by the scheduler 30 minutes after a confirmed slot ends. If the dealer checked in, the seller missed it; otherwise the dealer did. That side gets a strike and a 7-day block, and can challenge it on **Missed pickups** (`/strikes`) within 48 hours. Admins review strikes under **No show strikes** in the admin and choose **Uphold** or **Remove** (removing lifts the block).
@@ -201,6 +203,7 @@ The `scheduler` service runs Django management commands every `SCHEDULER_INTERVA
 | `expire_listings` | Moves open listings with no accepted offer to expired, `LISTING_EXPIRY_DAYS` after publishing |
 | `record_no_shows` | Records a no-show 30 minutes after a confirmed slot ends with no pickup: a strike and a 7-day block for the side that missed it |
 | `expire_offers` | Marks active offers past their `OFFER_EXPIRY_HOURS` validity as expired. An offer past its time can't be accepted even before this runs. |
+| `flag_rate_outliers` | Flags dealers whose average rate for a category over the last `RATE_FLAG_WINDOW_DAYS` is more than `RATE_FLAG_THRESHOLD_PERCENT` above the other dealers' average (needs `RATE_FLAG_MIN_PEERS` other dealers); at most one flag per dealer and category per window |
 
 To expire listings straight away instead of waiting for the next run: `docker compose exec backend python manage.py expire_listings` A failing job is logged, and the other jobs and later runs still happen.
 
@@ -276,6 +279,12 @@ All variables are in `.env.example` with safe local defaults. Never commit `.env
 | `WEIGHT_TOLERANCE_PERCENT` | `5` | At pickup, a verified weight within this % of the declared weight counts as equal |
 | `HANDOVER_CODE_EXPIRY_MINUTES` | `15` | How long the seller's handover code is valid |
 | `HANDOVER_CODE_MAX_ATTEMPTS` | `5` | Wrong handover codes allowed before the seller must show a fresh one |
+| `RATE_FLAG_THRESHOLD_PERCENT` | `20` | A dealer's average rate for a category more than this % above the other dealers' average is flagged |
+| `RATE_FLAG_WINDOW_DAYS` | `30` | Offers from this many days back are compared; a dealer and category get at most one flag in this window |
+| `RATE_FLAG_MIN_PEERS` | `3` | Other dealers needed before a rate is compared at all |
+| `AUTO_SUSPEND_UPHELD_DISPUTES` | `3` | Upheld disputes against a dealer (since their last suspension) that suspend them from selling and buying |
+| `SUSPENSION_FEE_PAISE` | `50000` | Fee to lift a suspension (₹500) |
+| `SUSPENSION_FEE_DOUBLES_FROM` | `3` | From this suspension on, the fee doubles each time (₹500, ₹500, ₹1,000, ₹2,000…) |
 | `MINIO_ROOT_USER`, `MINIO_ROOT_PASSWORD` | `scrapbid`, `scrapbid-secret` | Local only |
 | `MINIO_CONSOLE_PORT` | `9001` | Host port for the MinIO console |
 | `SCHEDULER_INTERVAL_SECONDS` | `300` | Seconds between scheduler runs. Must be positive. |

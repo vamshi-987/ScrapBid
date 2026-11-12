@@ -87,6 +87,18 @@ WEIGHT_TOLERANCE_PERCENT = env_positive_int("WEIGHT_TOLERANCE_PERCENT", 5)
 # The seller's handover code (6 digits) is valid this long and allows this many wrong tries.
 HANDOVER_CODE_EXPIRY_MINUTES = env_positive_int("HANDOVER_CODE_EXPIRY_MINUTES", 15)
 HANDOVER_CODE_MAX_ATTEMPTS = env_positive_int("HANDOVER_CODE_MAX_ATTEMPTS", 5)
+# Rate flags: a dealer's average rate for a category over the last RATE_FLAG_WINDOW_DAYS more
+# than RATE_FLAG_THRESHOLD_PERCENT above the other dealers' average, with at least
+# RATE_FLAG_MIN_PEERS other dealers to compare against.
+RATE_FLAG_THRESHOLD_PERCENT = env_positive_int("RATE_FLAG_THRESHOLD_PERCENT", 20)
+RATE_FLAG_WINDOW_DAYS = env_positive_int("RATE_FLAG_WINDOW_DAYS", 30)
+RATE_FLAG_MIN_PEERS = env_positive_int("RATE_FLAG_MIN_PEERS", 3)
+# This many upheld disputes against a dealer (since their last suspension) suspend them from
+# selling and buying. Lifting costs SUSPENSION_FEE_PAISE, doubling from the
+# SUSPENSION_FEE_DOUBLES_FROM-th suspension on (e.g. ₹500, ₹500, ₹1,000, ₹2,000).
+AUTO_SUSPEND_UPHELD_DISPUTES = env_positive_int("AUTO_SUSPEND_UPHELD_DISPUTES", 3)
+SUSPENSION_FEE_PAISE = env_positive_int("SUSPENSION_FEE_PAISE", 50000)
+SUSPENSION_FEE_DOUBLES_FROM = env_positive_int("SUSPENSION_FEE_DOUBLES_FROM", 3)
 
 if DJANGO_ENV == "production":
     _problems = production_problems(
