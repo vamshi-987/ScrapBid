@@ -52,7 +52,7 @@ Run `docker compose exec backend python manage.py seed_demo`, then log in at htt
 |---|---|
 | `9000000001` | Admin. Also opens Django admin at http://localhost/admin. |
 | `9000000002` | Seller 1 (Ameerpet): an open listing (paper and cardboard), a draft iron listing to add a photo to and publish, a cardboard pickup confirmed for tomorrow at 10:00, and a plastic listing whose dealer cancelled before the seller withdrew it |
-| `9000000003` | Seller 2 (Secunderabad): an open listing with restricted e-waste and an appliance, an expired plastic listing to relist, and an aluminium listing with an accepted offer |
+| `9000000003` | Seller 2 (Secunderabad): an open listing with restricted e-waste and an appliance, an expired plastic listing to relist, an aluminium listing with an accepted offer, and a paper pickup already weighed (waiting for the seller to confirm) |
 | `9000000004` | Approved dealer who also sells (Ameerpet), with an open 350.5 kg bulk copper listing. Switches between the Selling and Buying views. |
 | `9000000005` | Dealer whose application is waiting for review (Kukatpally), with sample documents to approve in the admin |
 | `9000000006` | Approved dealer, authorised for e-waste (Begumpet) |
@@ -139,7 +139,13 @@ The seed also adds scrap categories: paper, cardboard, iron, copper, aluminium, 
   - The server applies the rules above and records, for each item, the declared, verified and taken amounts, the dealer's choice and the line amount, plus the final total. It also stores the photo (cleaned like listing photos), the server time and the distance from the address.
   - The listing moves to picked up and the seller is notified. If the dealer denies a short weight, the pickup is cancelled as `WEIGHT_SHORT`, with no strike for either side.
   - Both sides see the result and the scale photo on the pickup page. A retried weighing returns the recorded result unchanged.
-  - Known limit: the camera-only photo and the GPS position are enforced by the app, so a modified client could fake either one. The seller's confirmation of the result (next step) is the real safeguard.
+  - Known limit: the camera-only photo and the GPS position are enforced by the app, so a modified client could fake either one. The seller's confirmation and the handover code are the real safeguards.
+- **Handover: the dealer can never complete an order alone.**
+  - After the weighing, the seller checks the scale photo and the amounts, then confirms. The app shows them a 6-digit code, valid for 15 minutes (`HANDOVER_CODE_EXPIRY_MINUTES`). Only a hash of it is stored, and it's never shown again.
+  - The seller can show a fresh code at any time; the old one stops working. No code exists before the seller confirms.
+  - The dealer pays the seller directly (cash or UPI), then enters the code and the payment method. After 5 wrong codes (`HANDOVER_CODE_MAX_ATTEMPTS`) the code is locked until the seller shows a fresh one.
+  - The listing then becomes completed. The order records the method and the amount paid, which is always the server's final amount; any amount sent by the app is ignored. Contact details stop being shared, and the seller is notified. A retried completion changes nothing.
+  - No payment gateway: the app only records the payment.
 - **Cancellations and no-shows.**
   - Either side can cancel before pickup, with a reason. If the dealer cancels, the listing reopens with a fresh 7-day window, and the other offers come back if they're still within their time. If the seller cancels, the listing is cancelled. A seller can also cancel a draft or open listing.
   - During the confirmed slot, the dealer checks in from the pickup point. This uses the phone's GPS and must be within 200 m (`PICKUP_MAX_DISTANCE_METERS`).
