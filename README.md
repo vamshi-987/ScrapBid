@@ -133,6 +133,13 @@ The seed also adds scrap categories: paper, cardboard, iron, copper, aluminium, 
   - **More than 5% over:** the dealer either takes the excess (pays the verified weight) or declines it (pays the declared weight, and the seller keeps the rest).
   - **More than 5% under:** the dealer either accepts (pays the verified weight) or denies the pickup, which cancels it as `WEIGHT_SHORT`.
   - Counts of per-item goods are exact, with no tolerance. The dealer never pays for more than was verified. Each line rounds half up to the paisa.
+- **Weighing at pickup.**
+  - The dealer enters the verified weight (or count) for each item and takes a photo of the scale reading with the app's camera. The app has no file picker, so the photo can't come from the gallery.
+  - The phone's GPS must be within 200 m of the pickup address (`PICKUP_MAX_DISTANCE_METERS`), or nothing is recorded.
+  - The server applies the rules above and records, for each item, the declared, verified and taken amounts, the dealer's choice and the line amount, plus the final total. It also stores the photo (cleaned like listing photos), the server time and the distance from the address.
+  - The listing moves to picked up and the seller is notified. If the dealer denies a short weight, the pickup is cancelled as `WEIGHT_SHORT`, with no strike for either side.
+  - Both sides see the result and the scale photo on the pickup page. A retried weighing returns the recorded result unchanged.
+  - Known limit: the camera-only photo and the GPS position are enforced by the app, so a modified client could fake either one. The seller's confirmation of the result (next step) is the real safeguard.
 - **Cancellations and no-shows.**
   - Either side can cancel before pickup, with a reason. If the dealer cancels, the listing reopens with a fresh 7-day window, and the other offers come back if they're still within their time. If the seller cancels, the listing is cancelled. A seller can also cancel a draft or open listing.
   - During the confirmed slot, the dealer checks in from the pickup point. This uses the phone's GPS and must be within 200 m (`PICKUP_MAX_DISTANCE_METERS`).

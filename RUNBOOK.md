@@ -59,6 +59,13 @@ After an offer is accepted, open **Pickup details** on the listing (the dealer f
 
 On the pickup page either side can **Cancel this pickup**, with a reason. During the confirmed slot the dealer taps **I've arrived (check in)**: the phone's location must be within 200 m of the address. Use DevTools Sensors to fake being there; see "Faking a location".
 
+To record the weighing, log in as the dealer `9000000006` and open the scheduled cardboard pickup (40 kg declared) under **My pickups**. Set the location to `17.4370`, `78.4475` in DevTools Sensors, then choose **Record the weighing**:
+1. Enter the verified weight. Within 5% needs no choice. Beyond 5%, choose to take or decline the excess, or to accept or deny the short weight.
+2. Take the scale photo with the camera (allow camera access; on a laptop the webcam works).
+3. Choose **Record weighing**. The listing becomes "Picked up", and the seller `9000000002` sees the verified amounts, the final amount and the photo.
+
+Run `seed_demo` again to put the demo pickup back.
+
 Missed pickups are recorded by the scheduler 30 minutes after a confirmed slot ends. If the dealer checked in, the seller missed it; otherwise the dealer did. That side gets a strike and a 7-day block, and can challenge it on **Missed pickups** (`/strikes`) within 48 hours. Admins review strikes under **No show strikes** in the admin and choose **Uphold** or **Remove** (removing lifts the block).
 
 To try a no-show without waiting, move the seeded pickup's slot into the past and run the job:
@@ -251,7 +258,7 @@ All variables are in `.env.example` with safe local defaults. Never commit `.env
 | `PICKUP_MIN_NOTICE_HOURS` | `2` | A pickup must start at least this many hours from now |
 | `PICKUP_MAX_DAYS_AHEAD` | `7` | A pickup can be booked at most this many days ahead |
 | `PICKUP_RESCHEDULE_DEADLINE_HOURS` | `2` | Requests to move a confirmed pickup close this many hours before it |
-| `PICKUP_MAX_DISTANCE_METERS` | `200` | How close the dealer must be to the pickup point to check in (and later to enter the weight) |
+| `PICKUP_MAX_DISTANCE_METERS` | `200` | How close the dealer must be to the pickup point to check in and to record the weighing |
 | `NO_SHOW_GRACE_MINUTES` | `30` | A missed pickup is recorded this long after the slot ends |
 | `NO_SHOW_BLOCK_DAYS` | `7` | How long a no-show strike blocks publishing (sellers) or offering (dealers) |
 | `STRIKE_CHALLENGE_HOURS` | `48` | How long a user has to challenge a strike |
