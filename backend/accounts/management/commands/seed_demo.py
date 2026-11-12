@@ -238,7 +238,7 @@ DEMO_ACCEPTED = [
     ("Demo listing 7:", "+919000000006"),
 ]
 
-# Accepted listings with a pickup slot the seller proposed and the dealer confirmed:
+# Accepted listings with a pickup slot the dealer proposed and the seller confirmed:
 # (listing marker, days from today, start hour IST).
 DEMO_SCHEDULED = [("Demo listing 7:", 1, 10)]
 
@@ -419,12 +419,12 @@ class Command(BaseCommand):
         accept_offer(listing.seller, offer)
 
     def _seed_schedule(self, marker, days, hour):
-        """Seller proposes a slot and the dealer confirms it, through the real rules."""
+        """Dealer proposes a slot and the seller confirms it, through the real rules."""
         listing = Listing.objects.get(address_line__startswith=marker)
         if listing.status != ListingStatus.OFFER_ACCEPTED:
             return
         order = listing.orders.get(status="active")
         day = timezone.localdate() + timedelta(days=days)
         start = datetime.combine(day, time(hour), tzinfo=IST)
-        propose_slot(order, listing.seller, start)
-        confirm_slot(order, order.dealer.user)
+        propose_slot(order, order.dealer.user, start)
+        confirm_slot(order, listing.seller)
