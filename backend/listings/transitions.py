@@ -4,6 +4,7 @@
     Before PICKED_UP: → CANCELLED. Dealer cancels after acceptance: → OPEN.
     PICKED_UP → DISPUTED → COMPLETED | CANCELLED (admin only)
     OPEN → EXPIRED (system only)
+    PICKUP_SCHEDULED → CANCELLED | OPEN may also be made by the system (no-shows)
 
 Callers (feature services) check who the actor is, such as the seller or the
 accepted dealer. This module enforces the graph, the admin-only and system-only
@@ -32,8 +33,10 @@ ALLOWED = {
 
 # Moves only an admin may make.
 ADMIN_ONLY = {(S.DISPUTED, S.COMPLETED), (S.DISPUTED, S.CANCELLED)}
-# Moves only the system (no user) may make, and the only moves it may make.
+# Moves only the system (no user) may make.
 SYSTEM_ONLY = {(S.OPEN, S.EXPIRED)}
+# Moves the system may also make, besides users: recording a pickup no-show.
+SYSTEM_ALSO = {(S.PICKUP_SCHEDULED, S.CANCELLED), (S.PICKUP_SCHEDULED, S.OPEN)}
 
 
 def needs_reason(from_status, to_status):
@@ -73,15 +76,17 @@ def transition(listing, to_status, actor, reason="", details=None):
             raise TransitionError("not_allowed", from_status, to_status)
         if move in SYSTEM_ONLY and actor is not None:
             raise TransitionError("system_only", from_status, to_status)
-        if actor is None and move not in SYSTEM_ONLY:
+        if actor is None and move not in SYSTEM_ONLY | SYSTEM_ALSO:
             raise TransitionError("not_allowed", from_status, to_status)
-        if move in ADMIN_ONLY and not actor.is_staff:
+        if move in ADMIN_ONLY and (actor is None or not actor.is_staff):
             raise TransitionError("admin_only", from_status, to_status)
         if needs_reason(from_status, to_status) and not reason:
             raise TransitionError("reason_required", from_status, to_status)
 
         updates = {"status": to_status, "updated_at": timezone.now()}
-        if to_status == S.OPEN and from_status == S.DRAFT:
+        if to_status == S.OPEN:
+            # Publishing, or reopening after a dealer cancels: the listing gets a
+            # fresh expiry window from now.
             updates["published_at"] = updates["updated_at"]
         Listing.objects.filter(pk=current.pk).update(**updates)
         AuditLog.objects.create(
