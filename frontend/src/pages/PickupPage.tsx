@@ -5,7 +5,9 @@ import {
   answerReschedule,
   cancelPickup,
   checkIn,
+  completePickup,
   confirmSlot,
+  confirmWeighing,
   fetchPickup,
   proposeSlot,
   requestReschedule,
@@ -17,6 +19,7 @@ import {
 import { formatINR } from "../format/money";
 import { formatWeight } from "../format/weight";
 import { ContactCard } from "../orders/ContactCard";
+import { Handover } from "../orders/Handover";
 import { bookableDates, formatSlot, istStart, slotStartTimes } from "../orders/slots";
 import { WeighForm, WeighingResult } from "../orders/WeighForm";
 import { formatIST } from "../format/time";
@@ -77,6 +80,19 @@ export function PickupPage() {
     }
   }
 
+  async function confirmAndShowCode() {
+    setBusy(true);
+    setError(null);
+    const result = await confirmWeighing(pickup!.id);
+    setBusy(false);
+    if (!result.ok) {
+      setError(result.reason in t.errors ? (result.reason as ErrorKey) : "error");
+      return null;
+    }
+    setPickup(result.pickup);
+    return result.code;
+  }
+
   return (
     <main className="page">
       <h1>{t.title}</h1>
@@ -126,6 +142,12 @@ export function PickupPage() {
       </section>
 
       <WeighingResult pickup={pickup} />
+      <Handover
+        pickup={pickup}
+        busy={busy}
+        onConfirm={confirmAndShowCode}
+        onComplete={(code, method) => run(completePickup(pickup.id, code, method))}
+      />
       {can("weigh") &&
         (weighing ? (
           <WeighForm pickup={pickup} busy={busy} onWeigh={weigh} />

@@ -250,4 +250,9 @@ def available_actions(order, user):
             actions.append("decline_reschedule")
             if now < order.slot_start:
                 actions.append("accept_reschedule")
+    if status == ListingStatus.PICKED_UP:
+        if party == Party.SELLER:
+            actions.append("confirm_weighing")
+        elif order.seller_confirmed_at:
+            actions.append("complete")
     return actions

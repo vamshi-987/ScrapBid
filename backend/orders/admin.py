@@ -28,6 +28,7 @@ class OrderAdmin(admin.ModelAdmin):
         "created_at",
     ]
     list_filter = ["status", "cancelled_by", "no_show_party"]
+    exclude = ["handover_code_hash"]
     inlines = [OrderItemInline]
 
     def has_add_permission(self, request):

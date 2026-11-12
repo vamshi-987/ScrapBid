@@ -84,6 +84,9 @@ NO_SHOW_BLOCK_DAYS = env_positive_int("NO_SHOW_BLOCK_DAYS", 7)
 STRIKE_CHALLENGE_HOURS = env_positive_int("STRIKE_CHALLENGE_HOURS", 48)
 # At pickup, a verified weight within this percentage of the declared weight counts as equal.
 WEIGHT_TOLERANCE_PERCENT = env_positive_int("WEIGHT_TOLERANCE_PERCENT", 5)
+# The seller's handover code (6 digits) is valid this long and allows this many wrong tries.
+HANDOVER_CODE_EXPIRY_MINUTES = env_positive_int("HANDOVER_CODE_EXPIRY_MINUTES", 15)
+HANDOVER_CODE_MAX_ATTEMPTS = env_positive_int("HANDOVER_CODE_MAX_ATTEMPTS", 5)
 
 if DJANGO_ENV == "production":
     _problems = production_problems(

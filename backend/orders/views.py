@@ -10,7 +10,7 @@ from rest_framework.views import APIView
 from accounts.models import Role
 from accounts.permissions import HasRole
 from offers.models import Offer
-from orders import endings, scheduling, weighing
+from orders import endings, handover, scheduling, weighing
 from orders.models import NoShowStrike, Order, OrderStatus, Party
 from orders.serializers import OrderSerializer, PickupSerializer, SlotInputSerializer
 from orders.services import AcceptError, accept_offer
@@ -290,4 +290,49 @@ class WeighView(APIView):
                 {"detail": str(error), "code": error.code, "category": error.category},
                 status=http_status,
             )
+        return pickup_response(request, order_id)
+
+
+class ConfirmWeighingView(APIView):
+    """The seller confirms the weighing and gets the handover code to show the dealer.
+
+    Calling again gives a fresh code (the old one stops working). The code is in this
+    response only; the server keeps just its hash.
+    """
+
+    def post(self, request, order_id):
+        order = my_order(request, order_id)
+        try:
+            order, code = handover.confirm_weighing(order, request.user)
+        except handover.HandoverError as error:
+            return Response(
+                {"detail": str(error), "code": error.code}, status=status.HTTP_409_CONFLICT
+            )
+        data = PickupSerializer(my_order(request, order_id), context={"request": request}).data
+        return Response({**data, "handover_code": code})
+
+
+class CompleteOrderView(APIView):
+    """The dealer enters the seller's code and the payment method (cash or UPI).
+
+    The amount paid is the server's final amount; any amount sent is ignored.
+    Safe to retry: a repeat returns the completed order.
+    """
+
+    def post(self, request, order_id):
+        order = my_order(request, order_id)
+        try:
+            handover.complete_order(
+                order,
+                request.user,
+                code=request.data.get("code", ""),
+                payment_method=request.data.get("payment_method", ""),
+            )
+        except handover.HandoverError as error:
+            http_status = (
+                status.HTTP_409_CONFLICT
+                if error.code in ("dealer_only", "wrong_stage", "not_confirmed")
+                else status.HTTP_400_BAD_REQUEST
+            )
+            return Response({"detail": str(error), "code": error.code}, status=http_status)
         return pickup_response(request, order_id)

@@ -23,6 +23,11 @@ class Party(models.TextChoices):
     DEALER = "dealer", "Dealer"
 
 
+class PaymentMethod(models.TextChoices):
+    CASH = "cash", "Cash"
+    UPI = "upi", "UPI"
+
+
 class Order(models.Model):
     """Created when a seller accepts an offer. Holds a snapshot of what was agreed:
     the declared amounts and the accepted rates. The listing's status tracks the
@@ -66,6 +71,15 @@ class Order(models.Model):
     weighing_distance_m = models.PositiveIntegerField(null=True, blank=True)
     scale_photo = models.FileField(max_length=200, blank=True)
     final_amount_paise = models.PositiveBigIntegerField(null=True, blank=True)
+    # Handover: the seller confirms, then the dealer enters the seller's code (hash only).
+    seller_confirmed_at = models.DateTimeField(null=True, blank=True)
+    handover_code_hash = models.CharField(max_length=64, blank=True)
+    handover_code_expires_at = models.DateTimeField(null=True, blank=True)
+    handover_attempts = models.PositiveSmallIntegerField(default=0)
+    # Payment happens offline at pickup; the app only records it.
+    payment_method = models.CharField(max_length=10, choices=PaymentMethod.choices, blank=True)
+    paid_amount_paise = models.PositiveBigIntegerField(null=True, blank=True)
+    completed_at = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
