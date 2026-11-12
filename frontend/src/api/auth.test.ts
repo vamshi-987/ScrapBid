@@ -57,7 +57,7 @@ describe("verifyOtp", () => {
     phone: "+919876543210",
     roles: ["seller"],
     is_staff: false,
-    blocked_until: null,
+    blocked: false,
     suspension: null,
   };
 

@@ -29,7 +29,7 @@ class OfferError(Exception):
         "not_live": "This offer is no longer active.",
         "wrong_categories": "Give exactly one rate for each category on the listing.",
         "rate_out_of_range": "A rate is too high. Check the amount.",
-        "blocked": "You can't make offers while blocked for a missed pickup.",
+        "blocked": "You can't make offers until the missed-pickup penalty is paid.",
         "suspended": "You can't make offers while your account is suspended.",
     }
 
@@ -73,9 +73,9 @@ def create_offer(dealer, listing_id, rates):
     """Make an ACTIVE offer on a listing the dealer can see in their feed."""
     if not visible_to_dealer(dealer).filter(pk=listing_id).exists():
         raise OfferError("not_found")
-    from orders.endings import blocked_until
+    from orders.payments import has_unpaid_penalty
 
-    if blocked_until(dealer.user):
+    if has_unpaid_penalty(dealer.user):
         raise OfferError("blocked")
     if is_suspended(dealer.user):
         raise OfferError("suspended")

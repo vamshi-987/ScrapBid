@@ -25,6 +25,7 @@ from notifications.models import NotificationKind
 from notifications.services import notify
 from offers.models import OfferRate, OfferStatus
 from orders.models import Order
+from orders.payments import add_suspension_fee, cancel_unpaid
 
 
 def suspension_fee_paise(user):
@@ -52,12 +53,14 @@ def suspend_if_due(dealer_user):
         reason=f"{limit} upheld disputes",
         fee_paise=suspension_fee_paise(dealer_user),
     )
+    add_suspension_fee(suspension)
     notify(dealer_user, NotificationKind.SUSPENDED)
     return suspension
 
 
 def lift_suspension(suspension, admin):
-    """An admin lifts an active suspension. Returns True if it was lifted now."""
+    """Lift an active suspension: by an admin (which cancels an unpaid fee), or with
+    admin=None once its fee is paid. Returns True if it was lifted now."""
     with transaction.atomic():
         locked = Suspension.objects.select_for_update().get(pk=suspension.pk)
         if locked.lifted_at:
@@ -65,6 +68,7 @@ def lift_suspension(suspension, admin):
         locked.lifted_at = timezone.now()
         locked.lifted_by = admin
         locked.save(update_fields=["lifted_at", "lifted_by"])
+        cancel_unpaid(getattr(locked, "due", None))
         notify(locked.user, NotificationKind.SUSPENSION_LIFTED)
     return True
 

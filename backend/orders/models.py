@@ -148,15 +148,17 @@ class StrikeStatus(models.TextChoices):
 
 
 class NoShowStrike(models.Model):
-    """A missed confirmed pickup. Blocks the user until `blocked_until` unless an admin
-    removes it. The user may challenge it within STRIKE_CHALLENGE_HOURS."""
+    """A missed confirmed pickup. Comes with a penalty (a Due); the user is blocked until
+    it's paid, unless an admin removes the strike. The user may challenge it within
+    STRIKE_CHALLENGE_HOURS."""
 
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="no_show_strikes"
     )
     order = models.OneToOneField(Order, on_delete=models.PROTECT, related_name="strike")
     party = models.CharField(max_length=10, choices=Party.choices)
-    blocked_until = models.DateTimeField()
+    # Set only on strikes from before penalties replaced the fixed block; no longer used.
+    blocked_until = models.DateTimeField(null=True, blank=True)
     status = models.CharField(
         max_length=10, choices=StrikeStatus.choices, default=StrikeStatus.ACTIVE
     )
@@ -170,3 +172,54 @@ class NoShowStrike(models.Model):
 
     def __str__(self):
         return f"No-show strike {self.pk} ({self.party}) for order {self.order_id}"
+
+
+class DueKind(models.TextChoices):
+    NO_SHOW_PENALTY = "no_show_penalty", "No-show penalty"
+    SUSPENSION_FEE = "suspension_fee", "Suspension fee"
+
+
+class DueStatus(models.TextChoices):
+    UNPAID = "unpaid", "Unpaid"
+    PAID = "paid", "Paid"
+    CANCELLED = "cancelled", "Cancelled"
+
+
+class Due(models.Model):
+    """Money a user owes the platform: a no-show penalty or a suspension fee. Paid online
+    through the payment gateway; marked paid only after the gateway confirms it."""
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="dues"
+    )
+    kind = models.CharField(max_length=20, choices=DueKind.choices)
+    amount_paise = models.PositiveBigIntegerField()
+    status = models.CharField(max_length=10, choices=DueStatus.choices, default=DueStatus.UNPAID)
+    strike = models.OneToOneField(
+        NoShowStrike, on_delete=models.PROTECT, null=True, blank=True, related_name="due"
+    )
+    suspension = models.OneToOneField(
+        "accounts.Suspension", on_delete=models.PROTECT, null=True, blank=True, related_name="due"
+    )
+    # The gateway's payment link for this due, and the payment once confirmed.
+    link_id = models.CharField(max_length=64, blank=True, db_index=True)
+    link_url = models.URLField(max_length=300, blank=True)
+    payment_id = models.CharField(max_length=64, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    paid_at = models.DateTimeField(null=True, blank=True)
+    cancelled_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        constraints = [
+            models.CheckConstraint(
+                condition=(
+                    models.Q(kind="no_show_penalty", strike__isnull=False, suspension__isnull=True)
+                    | models.Q(kind="suspension_fee", suspension__isnull=False, strike__isnull=True)
+                ),
+                name="due_has_its_source",
+            ),
+            models.CheckConstraint(condition=models.Q(amount_paise__gt=0), name="due_positive"),
+        ]
+
+    def __str__(self):
+        return f"{self.get_kind_display()} {self.pk} for user {self.user_id}"

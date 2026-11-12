@@ -20,6 +20,11 @@ urlpatterns = [
     ),
     path("orders/<int:order_id>/dispute", views.DisputeView.as_view(), name="order-dispute"),
     path("strikes", views.MyStrikesView.as_view(), name="my-strikes"),
+    path("dues", views.MyDuesView.as_view(), name="my-dues"),
+    path("dues/<int:due_id>/pay", views.PayDueView.as_view(), name="due-pay"),
+    path("dues/<int:due_id>/check", views.CheckDueView.as_view(), name="due-check"),
+    path("payments/callback", views.PaymentCallbackView.as_view(), name="payment-callback"),
+    path("payments/fake/<str:link_id>", views.FakePayView.as_view(), name="payment-fake"),
     path(
         "strikes/<int:strike_id>/challenge",
         views.ChallengeStrikeView.as_view(),

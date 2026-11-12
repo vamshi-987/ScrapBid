@@ -4,7 +4,6 @@ import { Link } from "react-router";
 import type { Me } from "../api/auth";
 import { apiFetch } from "../api/client";
 import { formatINR } from "../format/money";
-import { formatIST } from "../format/time";
 import { MyListings } from "../listings/MyListings";
 import { NearbyListings } from "../listings/NearbyListings";
 import { MyOffers } from "../offers/MyOffers";
@@ -66,17 +65,17 @@ export function HomePage({ me, view }: Props) {
             <br />
             {strings.strikes.suspendedDetail} {formatINR(me.suspension.fee_paise)}
           </p>
+          <Link to="/dues">{strings.strikes.payNow}</Link>
         </section>
       )}
-      {me?.blocked_until && (
+      {me?.blocked && (
         <section className="card notice" role="status">
           <p>
-            <strong>
-              {strings.strikes.blockedNotice} {formatIST(me.blocked_until)}
-            </strong>
+            <strong>{strings.strikes.blockedNotice}</strong>
             <br />
             {view === "buying" ? strings.strikes.blockedDealer : strings.strikes.blockedSeller}
           </p>
+          <Link to="/dues">{strings.strikes.payNow}</Link> ·{" "}
           <Link to="/strikes">{strings.strikes.viewStrikes}</Link>
         </section>
       )}
