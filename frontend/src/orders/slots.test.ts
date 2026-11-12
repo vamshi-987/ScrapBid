@@ -93,3 +93,26 @@ describe("pickup API", () => {
     expect(await proposeSlot(2, "x")).toEqual({ ok: false, reason: "too_soon" });
   });
 });
+
+describe("contact", () => {
+  it("returns the details, 'closed' after the order closes, or null on other errors", async () => {
+    const { fetchContact } = await import("../api/orders");
+
+    respondWith(json(200, { name: "Dealer", phone: "+919811111111" }));
+    expect(await fetchContact(2)).toEqual({ name: "Dealer", phone: "+919811111111" });
+
+    respondWith(json(403, { code: "contact_closed" }));
+    expect(await fetchContact(2)).toBe("closed");
+
+    respondWith(json(404, {}));
+    expect(await fetchContact(2)).toBeNull();
+  });
+
+  it("builds a map link from coordinates", async () => {
+    const { mapsLink } = await import("../api/orders");
+
+    expect(mapsLink(17.4375, 78.4482)).toBe(
+      "https://www.google.com/maps/search/?api=1&query=17.4375,78.4482",
+    );
+  });
+});

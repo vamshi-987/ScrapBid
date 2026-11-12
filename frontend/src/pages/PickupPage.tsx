@@ -12,6 +12,7 @@ import {
 } from "../api/orders";
 import { formatINR } from "../format/money";
 import { formatWeight } from "../format/weight";
+import { ContactCard } from "../orders/ContactCard";
 import { bookableDates, formatSlot, istStart, slotStartTimes } from "../orders/slots";
 import { strings } from "../strings";
 
@@ -78,6 +79,8 @@ export function PickupPage() {
           <small>{strings.offers.estimateNote}</small>
         </p>
       </section>
+
+      <ContactCard orderId={pickup.id} role={pickup.my_role} />
 
       <section className="card">
         <h2>{t.slot}</h2>
