@@ -57,6 +57,19 @@ After an offer is accepted, open **Pickup details** on the listing (the dealer f
 2. The seller confirms it, or proposes another time for the dealer to confirm.
 3. Once confirmed, either side can **Ask for a new time** up to 2 hours before. The other side accepts it or keeps the confirmed time.
 
+On the pickup page either side can **Cancel this pickup**, with a reason. During the confirmed slot the dealer taps **I've arrived (check in)**: the phone's location must be within 200 m of the address. Use DevTools Sensors to fake being there; see "Faking a location".
+
+Missed pickups are recorded by the scheduler 30 minutes after a confirmed slot ends. If the dealer checked in, the seller missed it; otherwise the dealer did. That side gets a strike and a 7-day block, and can challenge it on **Missed pickups** (`/strikes`) within 48 hours. Admins review strikes under **No show strikes** in the admin and choose **Uphold** or **Remove** (removing lifts the block).
+
+To try a no-show without waiting, move the seeded pickup's slot into the past and run the job:
+
+```bash
+docker compose exec backend python manage.py shell -c "from datetime import timedelta; from django.utils import timezone; from orders.models import Order; o = Order.objects.get(listing__address_line__startswith='Demo listing 7:', status='active'); o.slot_start = timezone.now() - timedelta(hours=3); o.slot_end = timezone.now() - timedelta(hours=1); o.save()"
+docker compose exec backend python manage.py record_no_shows
+```
+
+Run `seed_demo` afterwards to put the demo pickup back. The strike stays until you delete it in the admin.
+
 The pickup page also shows the other side's contact details: the dealer sees the exact address and the seller's phone, and the seller sees the dealer's phone. They disappear once the pickup is completed or cancelled.
 
 To try it, the dealer `9000000007` has an accepted aluminium pickup with no time yet (under **My pickups**); the seller is `9000000003`.
@@ -168,6 +181,7 @@ The `scheduler` service runs Django management commands every `SCHEDULER_INTERVA
 |---|---|
 | `purge_otp_challenges` | Deletes login code records older than one day |
 | `expire_listings` | Moves open listings with no accepted offer to expired, `LISTING_EXPIRY_DAYS` after publishing |
+| `record_no_shows` | Records a no-show 30 minutes after a confirmed slot ends with no pickup: a strike and a 7-day block for the side that missed it |
 | `expire_offers` | Marks active offers past their `OFFER_EXPIRY_HOURS` validity as expired. An offer past its time can't be accepted even before this runs. |
 
 To expire listings straight away instead of waiting for the next run: `docker compose exec backend python manage.py expire_listings` A failing job is logged, and the other jobs and later runs still happen.
@@ -237,6 +251,10 @@ All variables are in `.env.example` with safe local defaults. Never commit `.env
 | `PICKUP_MIN_NOTICE_HOURS` | `2` | A pickup must start at least this many hours from now |
 | `PICKUP_MAX_DAYS_AHEAD` | `7` | A pickup can be booked at most this many days ahead |
 | `PICKUP_RESCHEDULE_DEADLINE_HOURS` | `2` | Requests to move a confirmed pickup close this many hours before it |
+| `PICKUP_MAX_DISTANCE_METERS` | `200` | How close the dealer must be to the pickup point to check in (and later to enter the weight) |
+| `NO_SHOW_GRACE_MINUTES` | `30` | A missed pickup is recorded this long after the slot ends |
+| `NO_SHOW_BLOCK_DAYS` | `7` | How long a no-show strike blocks publishing (sellers) or offering (dealers) |
+| `STRIKE_CHALLENGE_HOURS` | `48` | How long a user has to challenge a strike |
 | `MINIO_ROOT_USER`, `MINIO_ROOT_PASSWORD` | `scrapbid`, `scrapbid-secret` | Local only |
 | `MINIO_CONSOLE_PORT` | `9001` | Host port for the MinIO console |
 | `SCHEDULER_INTERVAL_SECONDS` | `300` | Seconds between scheduler runs. Must be positive. |
