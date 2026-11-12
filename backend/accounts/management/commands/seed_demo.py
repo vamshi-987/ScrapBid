@@ -24,6 +24,7 @@ from offers.services import create_offer
 from orders.endings import cancel_order
 from orders.scheduling import IST, confirm_slot, propose_slot
 from orders.services import accept_offer
+from orders.weighing import record_weighing
 
 # Demo accounts for local testing. Listed in README.md; log in with DEV_FIXED_OTP.
 DEMO_USERS = [
@@ -228,6 +229,17 @@ DEMO_LISTINGS = [
         "photos": 1,
         "status": ListingStatus.CANCELLED,  # dealer cancelled, then the seller withdrew it
     },
+    {
+        "phone": "+919000000003",
+        "address_line": "Demo listing 9: 6-3-45, Punjagutta Road",
+        "locality": "Punjagutta",
+        "pincode": "500082",
+        "latitude": 17.4260,
+        "longitude": 78.4510,
+        "items": [("Paper", "25", None)],
+        "photos": 1,
+        "status": ListingStatus.PICKED_UP,  # weighed by the dealer, waiting for the seller
+    },
 ]
 
 # Offers on the open demo listings: (listing marker, dealer phone, {category: paise}).
@@ -244,6 +256,7 @@ DEMO_OFFERS = [
     ("Demo listing 7:", "+919000000006", {"Cardboard": 1000}),
     ("Demo listing 8:", "+919000000007", {"Plastic": 1200}),
     ("Demo listing 8:", "+919000000006", {"Plastic": 1100}),
+    ("Demo listing 9:", "+919000000007", {"Paper": 1500}),
 ]
 
 # Offers the seller has accepted: (listing marker, dealer phone).
@@ -251,6 +264,7 @@ DEMO_ACCEPTED = [
     ("Demo listing 6:", "+919000000007"),
     ("Demo listing 7:", "+919000000006"),
     ("Demo listing 8:", "+919000000007"),
+    ("Demo listing 9:", "+919000000007"),
 ]
 
 # Cancel history: (listing marker, dealer's reason, then the seller's reason).
@@ -258,7 +272,10 @@ DEMO_CANCELLATIONS = [("Demo listing 8:", "Truck broke down", "Sold to a neighbo
 
 # Accepted listings with a pickup slot the dealer proposed and the seller confirmed:
 # (listing marker, days from today, start hour IST).
-DEMO_SCHEDULED = [("Demo listing 7:", 1, 10)]
+DEMO_SCHEDULED = [("Demo listing 7:", 1, 10), ("Demo listing 9:", 1, 12)]
+
+# Scheduled pickups the dealer has weighed: (listing marker, {category: verified kg}).
+DEMO_WEIGHED = [("Demo listing 9:", {"Paper": "26"})]
 
 PHOTO_COLOURS = ["#8d6e63", "#78909c", "#a1887f"]
 
@@ -321,6 +338,10 @@ class Command(BaseCommand):
             for marker, days, hour in DEMO_SCHEDULED:
                 self._seed_schedule(marker, days, hour)
             self.stdout.write(f"Scheduled pickups: {len(DEMO_SCHEDULED)}")
+
+            for marker, verified in DEMO_WEIGHED:
+                self._seed_weighing(marker, verified)
+            self.stdout.write(f"Weighed pickups: {len(DEMO_WEIGHED)}")
 
             for marker, dealer_reason, seller_reason in DEMO_CANCELLATIONS:
                 self._seed_cancellation(marker, dealer_reason, seller_reason)
@@ -414,6 +435,7 @@ class Command(BaseCommand):
             ListingStatus.EXPIRED,
             ListingStatus.OFFER_ACCEPTED,
             ListingStatus.PICKUP_SCHEDULED,
+            ListingStatus.PICKED_UP,
             ListingStatus.CANCELLED,
         ):
             publish_listing(listing, seller)
@@ -453,6 +475,26 @@ class Command(BaseCommand):
         start = datetime.combine(day, time(hour), tzinfo=IST)
         propose_slot(order, order.dealer.user, start)
         confirm_slot(order, listing.seller)
+
+    def _seed_weighing(self, marker, verified):
+        """The dealer weighs at the pickup point, through the real weighing rules."""
+        listing = Listing.objects.get(address_line__startswith=marker)
+        if listing.status != ListingStatus.PICKUP_SCHEDULED:
+            return
+        order = listing.orders.get(status="active")
+        buffer = io.BytesIO()
+        Image.new("RGB", (800, 600), "#eceff1").save(buffer, format="JPEG")
+        record_weighing(
+            order,
+            order.dealer.user,
+            latitude=listing.location.y,
+            longitude=listing.location.x,
+            photo=ContentFile(buffer.getvalue(), name="scale.jpg"),
+            lines=[
+                {"category": item.category_id, "verified": verified[item.category.name]}
+                for item in order.items.select_related("category")
+            ],
+        )
 
     def _seed_cancellation(self, marker, dealer_reason, seller_reason):
         """The accepted dealer cancels (the listing reopens), then the seller withdraws it."""

@@ -16,6 +16,7 @@ class NotificationKind(models.TextChoices):
     PICKUP_MISSED = "pickup_missed", "The other side missed the pickup"
     WEIGHED = "weighed", "Your scrap was weighed: please check and confirm"
     WEIGHT_SHORT = "weight_short", "The dealer declined: the weight was short"
+    ORDER_COMPLETED = "order_completed", "The pickup is complete"
 
 
 class Notification(models.Model):

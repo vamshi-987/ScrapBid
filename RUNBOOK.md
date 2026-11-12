@@ -66,6 +66,13 @@ To record the weighing, log in as the dealer `9000000006` and open the scheduled
 
 Run `seed_demo` again to put the demo pickup back.
 
+To try the handover, use the seeded paper pickup that's already weighed (26 kg at ₹15/kg, ₹390):
+1. Log in as the seller `9000000003`, open it under **My pickups**, check the weighing result and choose **Confirm the weighing and show my code**.
+2. In another browser profile (or a private window), log in as the dealer `9000000007`, open the same pickup, enter the 6-digit code, choose cash or UPI, then **Complete the pickup**.
+3. Both sides see "Pickup complete" with the amount paid, and contact details are no longer shown. If the code expired or was mistyped 5 times, the seller chooses **Show a new code**.
+
+Run `seed_demo` again to put it back.
+
 Missed pickups are recorded by the scheduler 30 minutes after a confirmed slot ends. If the dealer checked in, the seller missed it; otherwise the dealer did. That side gets a strike and a 7-day block, and can challenge it on **Missed pickups** (`/strikes`) within 48 hours. Admins review strikes under **No show strikes** in the admin and choose **Uphold** or **Remove** (removing lifts the block).
 
 To try a no-show without waiting, move the seeded pickup's slot into the past and run the job:
@@ -263,6 +270,8 @@ All variables are in `.env.example` with safe local defaults. Never commit `.env
 | `NO_SHOW_BLOCK_DAYS` | `7` | How long a no-show strike blocks publishing (sellers) or offering (dealers) |
 | `STRIKE_CHALLENGE_HOURS` | `48` | How long a user has to challenge a strike |
 | `WEIGHT_TOLERANCE_PERCENT` | `5` | At pickup, a verified weight within this % of the declared weight counts as equal |
+| `HANDOVER_CODE_EXPIRY_MINUTES` | `15` | How long the seller's handover code is valid |
+| `HANDOVER_CODE_MAX_ATTEMPTS` | `5` | Wrong handover codes allowed before the seller must show a fresh one |
 | `MINIO_ROOT_USER`, `MINIO_ROOT_PASSWORD` | `scrapbid`, `scrapbid-secret` | Local only |
 | `MINIO_CONSOLE_PORT` | `9001` | Host port for the MinIO console |
 | `SCHEDULER_INTERVAL_SECONDS` | `300` | Seconds between scheduler runs. Must be positive. |

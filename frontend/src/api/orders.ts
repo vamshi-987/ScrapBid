@@ -10,7 +10,9 @@ export type PickupAction =
   | "decline_reschedule"
   | "cancel"
   | "check_in"
-  | "weigh";
+  | "weigh"
+  | "confirm_weighing"
+  | "complete";
 
 export type Pickup = {
   id: number;
@@ -51,6 +53,11 @@ export type Pickup = {
   final_amount_paise: number | null;
   scale_photo_url: string | null;
   weight_tolerance_percent: number;
+  seller_confirmed_at: string | null;
+  handover_code_expires_at: string | null;
+  payment_method: "" | PaymentMethod;
+  paid_amount_paise: number | null;
+  completed_at: string | null;
   status: "active" | "completed" | "cancelled";
   actions: PickupAction[];
 };
@@ -147,6 +154,35 @@ export function weighPickup(id: number, weighing: Weighing) {
   body.append("longitude", String(weighing.longitude));
   body.append("lines", JSON.stringify(weighing.lines));
   return pickupResult(apiFetch(`/api/orders/${id}/weigh`, { method: "POST", body }));
+}
+
+export type PaymentMethod = "cash" | "upi";
+
+/** The seller confirms the weighing and gets a fresh handover code (shown only here). */
+export async function confirmWeighing(
+  id: number,
+): Promise<{ ok: true; pickup: Pickup; code: string } | { ok: false; reason: string }> {
+  try {
+    const response = await postJson(`/api/orders/${id}/confirm-weighing`);
+    const body = (await response.json().catch(() => ({}))) as Pickup & {
+      handover_code?: string;
+      code?: unknown;
+    };
+    if (response.ok && body.handover_code) {
+      const { handover_code: code, ...pickup } = body;
+      return { ok: true, pickup, code };
+    }
+    return { ok: false, reason: typeof body.code === "string" ? body.code : "error" };
+  } catch {
+    return { ok: false, reason: "error" };
+  }
+}
+
+/** The dealer enters the seller's code and how they paid. The server sets the amount. */
+export function completePickup(id: number, code: string, paymentMethod: PaymentMethod) {
+  return pickupResult(
+    postJson(`/api/orders/${id}/complete`, { code, payment_method: paymentMethod }),
+  );
 }
 
 export type Strike = {

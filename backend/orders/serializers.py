@@ -81,6 +81,11 @@ class PickupSerializer(OrderSerializer):
             "final_amount_paise",
             "scale_photo_url",
             "weight_tolerance_percent",
+            "seller_confirmed_at",
+            "handover_code_expires_at",
+            "payment_method",
+            "paid_amount_paise",
+            "completed_at",
             "actions",
         ]
 
