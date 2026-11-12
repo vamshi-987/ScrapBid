@@ -268,6 +268,13 @@ export const en = {
   pickup: {
     title: "Pickup",
     openPickup: "Pickup details",
+    contact: {
+      sellerTitle: "Pickup address and seller",
+      dealerTitle: "Your dealer",
+      openInMaps: "Open in maps",
+      privacy: "Shared only between you two, and only until this pickup is closed.",
+      closed: "This pickup is closed, so contact details are no longer shared.",
+    },
     myPickups: "My pickups",
     noTimeYet: "Time not agreed yet",
     needsYou: "needs your answer",

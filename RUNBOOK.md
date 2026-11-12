@@ -57,6 +57,8 @@ After an offer is accepted, open **Pickup details** on the listing (the dealer f
 2. The seller confirms it, or proposes another time for the dealer to confirm.
 3. Once confirmed, either side can **Ask for a new time** up to 2 hours before. The other side accepts it or keeps the confirmed time.
 
+The pickup page also shows the other side's contact details: the dealer sees the exact address and the seller's phone, and the seller sees the dealer's phone. They disappear once the pickup is completed or cancelled.
+
 To try it, the dealer `9000000007` has an accepted aluminium pickup with no time yet (under **My pickups**); the seller is `9000000003`.
 
 The seeded draft iron listing for `9000000002` is ready to have a photo added and be published. `9000000003` has an expired listing: open it and choose **Relist**.

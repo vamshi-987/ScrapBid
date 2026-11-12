@@ -8,7 +8,7 @@ from accounts.models import Role
 from accounts.permissions import HasRole
 from offers.models import Offer
 from orders import scheduling
-from orders.models import Order
+from orders.models import Order, OrderStatus, Party
 from orders.serializers import OrderSerializer, PickupSerializer, SlotInputSerializer
 from orders.services import AcceptError, accept_offer
 
@@ -119,3 +119,36 @@ class AnswerRescheduleView(APIView):
         except scheduling.SlotError as error:
             return slot_error(error)
         return pickup_response(request, order_id)
+
+
+class OrderContactView(APIView):
+    """Contact details for the other side of an open order, and only for its two sides.
+
+    The accepted dealer gets the exact pickup address and the seller's phone; the
+    seller gets the dealer's phone. Nothing is returned once the order has closed.
+    """
+
+    def get(self, request, order_id):
+        order = my_order(request, order_id)
+        if order.status != OrderStatus.ACTIVE:
+            return Response(
+                {
+                    "detail": "Contact details are no longer shared for this order.",
+                    "code": "contact_closed",
+                },
+                status=status.HTTP_403_FORBIDDEN,
+            )
+        if scheduling.party_of(order, request.user) == Party.DEALER:
+            listing = order.listing
+            return Response(
+                {
+                    "name": None,
+                    "phone": order.seller.phone,
+                    "address_line": listing.address_line,
+                    "locality": listing.locality,
+                    "pincode": listing.pincode,
+                    "latitude": listing.location.y,
+                    "longitude": listing.location.x,
+                }
+            )
+        return Response({"name": order.dealer.business_name, "phone": order.dealer.user.phone})

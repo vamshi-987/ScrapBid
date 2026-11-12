@@ -128,6 +128,10 @@ The seed also adds scrap categories: paper, cardboard, iron, copper, aluminium, 
   - The seller confirms it or proposes another time for the dealer to confirm. The pickup is scheduled only once confirmed.
   - Either side can then ask to move it, until 2 hours before the slot. The new time applies only if the other side accepts before the confirmed slot starts; otherwise the confirmed time stands.
   - Every confirmation and accepted reschedule is in the audit log (with the old and new times), and the other side is notified. All the limits are config values.
+- **Contact details are shared only within an open order.**
+  - Once an offer is accepted, the dealer sees the exact pickup address (with an "Open in maps" link) and the seller's phone. The seller sees the dealer's phone.
+  - Nobody else ever sees them: not other dealers, other sellers, or admins using the app.
+  - They're never in lists, offers, notifications or logs, and they stop being shared as soon as the order is completed or cancelled.
 - **In-app notifications** (no SMS, WhatsApp or push in the MVP).
   - Sellers are notified of each new offer. The header shows an unread count, refreshed every 30 seconds while the tab is open.
   - Notifications store only the kind and record IDs. The message text comes from the app's strings (ready for other languages), and no personal data is copied into them.

@@ -73,3 +73,29 @@ export function requestReschedule(id: number, start: string) {
 export function answerReschedule(id: number, accept: boolean) {
   return pickupResult(postJson(`/api/orders/${id}/reschedule/${accept ? "accept" : "decline"}`));
 }
+
+/** The other side's contact details, shared only while the order is open. */
+export type Contact = {
+  name: string | null;
+  phone: string;
+  address_line?: string;
+  locality?: string;
+  pincode?: string;
+  latitude?: number;
+  longitude?: number;
+};
+
+export async function fetchContact(id: number): Promise<Contact | "closed" | null> {
+  try {
+    const response = await apiFetch(`/api/orders/${id}/contact`);
+    if (response.ok) return (await response.json()) as Contact;
+    return response.status === 403 ? "closed" : null;
+  } catch {
+    return null;
+  }
+}
+
+/** A map search link for the pickup point (opened only when the dealer taps it). */
+export function mapsLink(latitude: number, longitude: number): string {
+  return `https://www.google.com/maps/search/?api=1&query=${latitude},${longitude}`;
+}
