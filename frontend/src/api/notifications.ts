@@ -7,13 +7,17 @@ export type NotificationKind =
   | "slot_confirmed"
   | "reschedule_requested"
   | "reschedule_accepted"
-  | "reschedule_declined";
+  | "reschedule_declined"
+  | "order_cancelled"
+  | "dealer_arrived"
+  | "no_show_recorded"
+  | "pickup_missed";
 
 export type AppNotification = {
   id: number;
   kind: NotificationKind;
   /** Record IDs only; the message text comes from the app's strings. */
-  data: { listing_id?: number; offer_id?: number; order_id?: number };
+  data: { listing_id?: number; offer_id?: number; order_id?: number; strike_id?: number };
   read_at: string | null;
   created_at: string;
 };

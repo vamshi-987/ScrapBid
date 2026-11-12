@@ -162,3 +162,17 @@ export async function deleteListingPhoto(id: number, photoId: number): Promise<b
     return false;
   }
 }
+
+/** The seller withdraws a draft or open listing, with a reason. */
+export async function cancelListing(
+  id: number,
+  reason: string,
+): Promise<{ ok: true; listing: ListingDetail } | Failure> {
+  try {
+    const response = await postJson(`/api/listings/${id}/cancel`, { reason });
+    if (response.ok) return { ok: true, listing: await readJson<ListingDetail>(response) };
+    return { ok: false, reason: await errorCode(response) };
+  } catch {
+    return { ok: false, reason: "error" };
+  }
+}

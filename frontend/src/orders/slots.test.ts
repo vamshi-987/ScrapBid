@@ -116,3 +116,39 @@ describe("contact", () => {
     );
   });
 });
+
+describe("cancel, check-in and strikes", () => {
+  it("sends the reason and the GPS position", async () => {
+    const { cancelPickup, checkIn } = await import("../api/orders");
+    const fetchMock = respondWith(json(200, { id: 2 }));
+
+    await cancelPickup(2, "Truck broke down");
+    await checkIn(2, 17.4375, 78.4482);
+
+    expect(fetchMock.mock.calls[0][0]).toBe("/api/orders/2/cancel");
+    expect(JSON.parse(fetchMock.mock.calls[0][1].body)).toEqual({ reason: "Truck broke down" });
+    expect(fetchMock.mock.calls[1][0]).toBe("/api/orders/2/check-in");
+    expect(JSON.parse(fetchMock.mock.calls[1][1].body)).toEqual({
+      latitude: 17.4375,
+      longitude: 78.4482,
+    });
+  });
+
+  it("passes the server's reason when check-in is refused", async () => {
+    const { checkIn } = await import("../api/orders");
+    respondWith(json(400, { code: "too_far_away" }));
+
+    expect(await checkIn(2, 0, 0)).toEqual({ ok: false, reason: "too_far_away" });
+  });
+
+  it("challenges a strike with a reason", async () => {
+    const { challengeStrike } = await import("../api/orders");
+    const fetchMock = respondWith(json(200, { id: 5 }));
+
+    expect(await challengeStrike(5, "I was there")).toEqual({ ok: true });
+    expect(fetchMock.mock.calls[0][0]).toBe("/api/strikes/5/challenge");
+
+    respondWith(json(409, { code: "challenge_closed" }));
+    expect(await challengeStrike(5, "late")).toEqual({ ok: false, reason: "challenge_closed" });
+  });
+});

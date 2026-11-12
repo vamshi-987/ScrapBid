@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState, type ChangeEvent } from "react";
 import { Link, useNavigate, useParams } from "react-router";
 
 import {
+  cancelListing,
   deleteListingPhoto,
   fetchListing,
   publishListing,
@@ -116,6 +117,15 @@ export function ListingPage() {
         <p>
           {t.address}: {listing.address_line}, {listing.locality} {listing.pincode}
         </p>
+        {(listing.status === "draft" || listing.status === "open") && (
+          <CancelListing
+            onCancel={async (reason) => {
+              const result = await cancelListing(listing.id, reason);
+              if (result.ok) setListing(result.listing);
+              else setError(errorKey(result.reason));
+            }}
+          />
+        )}
         {listing.status === "draft" && (
           <>
             <p>{t.publishHint}</p>
@@ -169,5 +179,38 @@ export function ListingPage() {
         </p>
       )}
     </main>
+  );
+}
+
+function CancelListing({ onCancel }: { onCancel: (reason: string) => void }) {
+  const [open, setOpen] = useState(false);
+  const [reason, setReason] = useState("");
+
+  if (!open) {
+    return (
+      <button type="button" className="link" onClick={() => setOpen(true)}>
+        {t.cancelListing}
+      </button>
+    );
+  }
+  return (
+    <form
+      className="form"
+      onSubmit={(event) => {
+        event.preventDefault();
+        if (reason.trim()) onCancel(reason.trim());
+      }}
+    >
+      <label htmlFor="listing-cancel-reason">{t.cancelReason}</label>
+      <textarea
+        id="listing-cancel-reason"
+        maxLength={300}
+        value={reason}
+        onChange={(event) => setReason(event.target.value)}
+      />
+      <button type="submit" className="secondary" disabled={!reason.trim()}>
+        {t.confirmCancelListing}
+      </button>
+    </form>
   );
 }

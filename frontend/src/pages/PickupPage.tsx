@@ -3,6 +3,8 @@ import { useParams } from "react-router";
 
 import {
   answerReschedule,
+  cancelPickup,
+  checkIn,
   confirmSlot,
   fetchPickup,
   proposeSlot,
@@ -14,6 +16,8 @@ import { formatINR } from "../format/money";
 import { formatWeight } from "../format/weight";
 import { ContactCard } from "../orders/ContactCard";
 import { bookableDates, formatSlot, istStart, slotStartTimes } from "../orders/slots";
+import { formatIST } from "../format/time";
+import { getCurrentPosition } from "../session/location";
 import { strings } from "../strings";
 
 const t = strings.pickup;
@@ -51,6 +55,15 @@ export function PickupPage() {
   const other = pickup.my_role === "seller" ? t.roles.dealer : t.roles.seller;
   const can = (action: Pickup["actions"][number]) => pickup.actions.includes(action);
 
+  async function arrive() {
+    try {
+      const here = await getCurrentPosition();
+      await run(checkIn(pickup!.id, here.latitude, here.longitude));
+    } catch {
+      setError("location");
+    }
+  }
+
   return (
     <main className="page">
       <h1>{t.title}</h1>
@@ -58,6 +71,23 @@ export function PickupPage() {
         <p>
           <strong>{t.statuses[pickup.listing_status as keyof typeof t.statuses] ?? ""}</strong>
         </p>
+        {pickup.status === "cancelled" && (
+          <p className="status-error">
+            {pickup.no_show_party
+              ? `${t.ended.noShow} ${pickup.no_show_party === pickup.my_role ? t.ended.you : t.roles[pickup.no_show_party]}`
+              : `${t.ended.cancelledBy} ${pickup.cancelled_by === pickup.my_role ? t.ended.you : t.roles[pickup.cancelled_by || "seller"]}: ${pickup.cancel_reason}`}
+          </p>
+        )}
+        {pickup.dealer_checked_in_at && (
+          <p className="status-ok">
+            {t.checkedIn} {formatIST(pickup.dealer_checked_in_at)}
+          </p>
+        )}
+        {can("check_in") && (
+          <button type="button" onClick={arrive} disabled={busy}>
+            {t.checkIn}
+          </button>
+        )}
         <p>
           {pickup.dealer_name} · {pickup.locality} {pickup.pincode}
         </p>
@@ -148,12 +178,63 @@ export function PickupPage() {
         )}
       </section>
 
+      {can("cancel") && (
+        <CancelForm
+          busy={busy}
+          hint={pickup.my_role === "dealer" ? t.cancelHintDealer : t.cancelHintSeller}
+          onCancel={(reason) => run(cancelPickup(pickup.id, reason))}
+        />
+      )}
+
       {error && (
         <p className="status-error" role="alert">
           {t.errors[error]}
         </p>
       )}
     </main>
+  );
+}
+
+function CancelForm({
+  busy,
+  hint,
+  onCancel,
+}: {
+  busy: boolean;
+  hint: string;
+  onCancel: (reason: string) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [reason, setReason] = useState("");
+
+  if (!open) {
+    return (
+      <button type="button" className="secondary" onClick={() => setOpen(true)}>
+        {t.cancel}
+      </button>
+    );
+  }
+  return (
+    <form
+      className="card form"
+      onSubmit={(event) => {
+        event.preventDefault();
+        if (reason.trim()) onCancel(reason.trim());
+      }}
+    >
+      <label htmlFor="cancel-reason">{t.cancelReason}</label>
+      <textarea
+        id="cancel-reason"
+        maxLength={300}
+        value={reason}
+        onChange={(event) => setReason(event.target.value)}
+        required
+      />
+      <small>{hint}</small>
+      <button type="submit" disabled={busy || !reason.trim()}>
+        {t.confirmCancel}
+      </button>
+    </form>
   );
 }
 
