@@ -185,6 +185,8 @@ docker compose exec backend ruff format --check .
 
 To fix backend formatting: `docker compose exec backend ruff format .`
 
+**Adding an API endpoint:** add it to the table in `backend/config/tests/test_security_sweep.py`, with who may call it (public, any user, seller, approved dealer) and whose object is in the URL. Until then, `test_every_endpoint_is_in_the_table` fails. The sweep then checks the endpoint for anonymous users, the wrong role, the wrong owner and bad input.
+
 Frontend:
 
 ```bash
