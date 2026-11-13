@@ -180,6 +180,11 @@ The seed also adds scrap categories: paper, cardboard, iron, copper, aluminium, 
   - Sellers are notified of each new offer. The header shows an unread count, refreshed every 30 seconds while the tab is open.
   - Notifications store only the kind and record IDs. The message text comes from the app's strings (ready for other languages), and no personal data is copied into them.
   - A notification is created in the same transaction as the change, so a failed change leaves none behind.
+- **Users can delete their account** (**Account** in the header, `POST /api/auth/delete-account`).
+  - Personal data is removed: the phone number, listing addresses and coordinates, listing photos, the dealer's business name, area, ID details and verification documents (files too), pickup GPS points, notifications and login records.
+  - Transaction records stay without those details: orders with their weights and amounts, penalties and fees, strikes, disputes and the audit log.
+  - Deletion is refused while a pickup is still open or a penalty or fee is unpaid. Otherwise draft and open listings are cancelled and live offers withdrawn.
+  - Every session of the account stops working. The same number can sign up again later, as a new, empty account.
 - **Photos are cleaned and private.**
   - Listing photos (JPG, PNG or WebP, up to 10 MB, up to 6 per listing) are decoded to check they're real images.
   - They're rotated upright, shrunk to at most 2048 px, and re-encoded from pixels only. All EXIF, GPS and other metadata is removed. Dealer document photos go through the same cleaning.
