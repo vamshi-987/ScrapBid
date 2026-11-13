@@ -50,16 +50,19 @@ Run `docker compose exec backend python manage.py seed_demo`, then log in at htt
 
 | Phone | Account |
 |---|---|
-| `9000000001` | Admin. Also opens Django admin at http://localhost/admin. |
-| `9000000002` | Seller 1 (Ameerpet): an open listing (paper and cardboard), a draft iron listing to add a photo to and publish, a cardboard pickup confirmed for tomorrow at 10:00, a plastic listing whose dealer cancelled before the seller withdrew it, and an iron pickup in dispute |
-| `9000000003` | Seller 2 (Secunderabad): an open listing with restricted e-waste and an appliance, an expired plastic listing to relist, an aluminium listing with an accepted offer, and a paper pickup already weighed (waiting for the seller to confirm) |
+| `9000000001` | Admin. Also opens Django admin at http://localhost/admin, with a dealer application to review, a dispute to resolve, a rate flag, a suspension and a missed-pickup strike. |
+| `9000000002` | Seller 1 (Ameerpet): an open listing (paper and cardboard), a draft iron listing to add a photo to and publish, a cardboard pickup confirmed for tomorrow at 10:00, a plastic listing whose dealer cancelled before the seller withdrew it, an iron pickup in dispute, and a cardboard pickup the dealer refused because the weight was short |
+| `9000000003` | Seller 2 (Secunderabad): an open listing with restricted e-waste and an appliance, an expired plastic listing to relist, an aluminium listing with an accepted offer, a paper pickup already weighed (waiting for the seller to confirm), and an iron listing reopened after its dealer missed the pickup, with the other dealer's offer selectable again |
 | `9000000004` | Approved dealer who also sells (Ameerpet), with an open 350.5 kg bulk copper listing. Switches between the Selling and Buying views. |
 | `9000000005` | Dealer whose application is waiting for review (Kukatpally), with sample documents to approve in the admin |
 | `9000000006` | Approved dealer, authorised for e-waste (Begumpet) |
-| `9000000007` | Approved dealer (Secunderabad) |
-| `9000000008` | Approved dealer out of range of the Hyderabad sellers (Warangal) |
+| `9000000007` | Approved dealer (Secunderabad), flagged for a rate far above other dealers' |
+| `9000000008` | Approved dealer out of range of the Hyderabad sellers (Warangal), suspended until the ₹500 fee is paid on **Penalties and fees** |
+| `9000000009` | Approved dealer (Secunderabad) who missed a pickup: a strike to challenge on **Missed pickups** within 48 hours, and a ₹100 penalty to pay before making new offers |
 
 The seed also adds scrap categories: paper, cardboard, iron, copper, aluminium, plastic, e-waste and batteries (the last two restricted), and appliance (priced per item). It also adds the listings above, with photos, and offers on the open ones: three dealers on Seller 1's paper listing, two on the bulk copper, and only the e-waste-authorised dealer on the e-waste listing. Any other valid Indian mobile number also works and gets a new seller account on first login.
+
+Seeded pickup times are relative to the day you seed ("tomorrow at 10:00"). After a slot passes, the scheduler records it as missed. Run `seed_demo` again to reset every demo account and pickup; it's safe to run at any time.
 
 ## Key decisions
 

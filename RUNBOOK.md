@@ -77,13 +77,15 @@ To try a dispute, use the same weighed paper pickup: as the seller, choose **The
 
 Flags and suspensions are under **Flags** and **Suspensions** in the admin. The seed has an open rate flag on dealer `9000000007` and a suspension on dealer `9000000008`. Both are demo records created directly, because the seed has too few dealers in one city to raise a real flag and suspending an active demo dealer would block the other flows. Close a flag with the **Close selected flags** action and a note; lift a suspension with **Lift selected suspensions**. Log in as `9000000008` to see the suspension notice on the home page.
 
-To try paying, log in as `9000000008`, choose **Pay now** (or open http://localhost/dues) and **Pay ₹500**. Locally this opens the fake gateway's test page: **Pay** completes the payment and returns you to the app, where the suspension is lifted; **Fail** returns without paying. Run `seed_demo` again for a fresh demo suspension. To try a no-show penalty, record a no-show with the steps above and pay it the same way.
+To try paying, log in as `9000000008`, choose **Pay now** (or open http://localhost/dues) and **Pay ₹500**. Locally this opens the fake gateway's test page: **Pay** completes the payment and returns you to the app, where the suspension is lifted; **Fail** returns without paying. Run `seed_demo` again for a fresh demo suspension. Dealer `9000000009` has an unpaid ₹100 no-show penalty to pay the same way.
 
 **Razorpay in production:** create API keys in the Razorpay Dashboard (Account & Settings → API Keys; use test-mode keys first), set `PAYMENT_PROVIDER=razorpay`, `RAZORPAY_KEY_ID`, `RAZORPAY_KEY_SECRET` and `APP_BASE_URL` (your `https://` address) in the server's `.env`, and restart. No webhook is needed: the app confirms each payment with Razorpay when the user returns or taps **I've paid: check again**. A real suspension happens automatically on a dealer's 3rd upheld dispute (see the dispute steps above).
 
 To see the misuse stats, open a user in the admin (http://localhost/admin/accounts/user/, search by the exact number, e.g. `+919000000006`). The seed gives dealer `9000000006` two weighed pickups (iron 30 → 29 kg, disputed; cardboard 20 → 15 kg, denied): 1 denial (50.0%), an average variance of −14.2% and 1 dispute.
 
 Missed pickups are recorded by the scheduler 30 minutes after a confirmed slot ends. If the dealer checked in, the seller missed it; otherwise the dealer did. That side gets a strike and a ₹100 penalty, and is blocked until it's paid on **Penalties and fees** (`/dues`). They can challenge the strike on **Missed pickups** (`/strikes`) within 48 hours. Admins review strikes under **No show strikes** in the admin and choose **Uphold** or **Remove** (removing cancels an unpaid penalty; paid penalties aren't refunded).
+
+The seed has one already, recorded by the real job: dealer `9000000009` missed Seller 2's (`9000000003`) iron pickup. The dealer has a strike to challenge and a penalty to pay, and can't make offers until it's paid. The listing is open again, with dealer `9000000006`'s offer selectable. Once the strike has been challenged, paid or removed, or is past 48 hours, `seed_demo` replaces it with a fresh one.
 
 To try a no-show without waiting, move the seeded pickup's slot into the past and run the job:
 
@@ -92,7 +94,7 @@ docker compose exec backend python manage.py shell -c "from datetime import time
 docker compose exec backend python manage.py record_no_shows
 ```
 
-Run `seed_demo` afterwards to put the demo pickup back. The strike stays until you delete it in the admin.
+Run `seed_demo` afterwards to put the demo pickup back; it removes that strike and penalty too.
 
 The pickup page also shows the other side's contact details: the dealer sees the exact address and the seller's phone, and the seller sees the dealer's phone. They disappear once the pickup is completed or cancelled.
 
@@ -106,9 +108,10 @@ Log in as an approved dealer and open the Buying view. Dual-role users switch vi
 
 | Dealer | Sees |
 |---|---|
-| `9000000006` Begumpet, e-waste authorised | 3 listings, including the e-waste one |
-| `9000000007` Secunderabad | 2 listings (e-waste hidden) |
-| `9000000004` dual-role, Ameerpet | 1 listing (its own and the e-waste one hidden) |
+| `9000000006` Begumpet, e-waste authorised | 4 listings, including the e-waste one |
+| `9000000007` Secunderabad | 3 listings (e-waste hidden) |
+| `9000000009` Secunderabad | 3 listings (e-waste hidden); can't offer until the penalty is paid |
+| `9000000004` dual-role, Ameerpet | 2 listings (its own and the e-waste one hidden) |
 | `9000000008` Warangal | none (out of range) |
 | `9000000005` pending | a "not approved yet" message |
 
@@ -224,8 +227,9 @@ To expire listings straight away instead of waiting for the next run: `docker co
 
 ```bash
 docker compose logs -f scheduler        # one "Scheduler run finished" line per run
-docker compose restart scheduler        # needed after changing job code
 ```
+
+The scheduler restarts by itself when a file under `backend/` changes (an edit or a `git pull`), so jobs always run the current code.
 
 To run a job by hand: `docker compose exec backend python manage.py <command>`
 
