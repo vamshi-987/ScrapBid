@@ -22,8 +22,8 @@ from listings.transitions import transition
 from offers.models import OfferStatus
 from offers.services import create_offer
 from orders.disputes import open_dispute
-from orders.endings import cancel_order
-from orders.models import Due
+from orders.endings import cancel_order, record_no_shows
+from orders.models import Due, DueStatus, NoShowStrike, Order, StrikeStatus
 from orders.payments import add_suspension_fee
 from orders.scheduling import IST, confirm_slot, propose_slot
 from orders.services import accept_offer
@@ -58,6 +58,12 @@ DEMO_USERS = [
         "roles": [Role.DEALER],
         "is_staff": False,
         "label": "Dealer out of range (Warangal)",
+    },
+    {
+        "phone": "+919000000009",
+        "roles": [Role.DEALER],
+        "is_staff": False,
+        "label": "Dealer who missed a pickup",
     },
 ]
 
@@ -125,6 +131,18 @@ DEMO_DEALERS = [
         "service_radius_km": 12,
         "id_type": IdType.DRIVING_LICENCE,
         "id_number_last4": "2345",
+        "status": DealerStatus.APPROVED,
+    },
+    {
+        "phone": "+919000000009",
+        "business_name": "Secunderabad Iron Traders",
+        "locality": "Secunderabad",
+        "pincode": "500003",
+        "latitude": 17.4410,
+        "longitude": 78.5000,
+        "service_radius_km": 12,
+        "id_type": IdType.PAN,
+        "id_number_last4": "567K",
         "status": DealerStatus.APPROVED,
     },
     {
@@ -265,6 +283,17 @@ DEMO_LISTINGS = [
         "photos": 1,
         "status": ListingStatus.CANCELLED,  # weighed short and denied by the dealer
     },
+    {
+        "phone": "+919000000003",
+        "address_line": "Demo listing 12: 1-7-80, Secunderabad Market Road",
+        "locality": "Secunderabad",
+        "pincode": "500003",
+        "latitude": 17.4405,
+        "longitude": 78.4990,
+        "items": [("Iron", "30", None)],
+        "photos": 1,
+        "status": ListingStatus.OPEN,  # reopened after the dealer missed the pickup
+    },
 ]
 
 # Offers on the open demo listings: (listing marker, dealer phone, {category: paise}).
@@ -315,6 +344,12 @@ DEMO_WEIGHED = [
     ("Demo listing 10:", {"Iron": ("29", None)}),
     ("Demo listing 11:", {"Cardboard": ("15", "deny")}),
 ]
+
+# A confirmed pickup the dealer missed, recorded by the real no-show job: the dealer gets
+# a strike and a penalty, and the listing reopens with the other offer selectable again.
+# The missing dealer has no other demo offers: a blocked dealer can't make new ones.
+# (listing marker, missing dealer, other dealer, {category: paise}).
+DEMO_NO_SHOW = ("Demo listing 12:", "+919000000009", "+919000000006", {"Iron": 3000})
 
 # Weighed pickups the seller disputed: (listing marker, seller's reason).
 DEMO_DISPUTES = [("Demo listing 10:", "My own scale showed 34 kg")]
@@ -392,6 +427,8 @@ class Command(BaseCommand):
             self.stdout.write(f"Disputes: {len(DEMO_DISPUTES)}")
 
             self._seed_flag_and_suspension()
+            self._seed_no_show(*DEMO_NO_SHOW)
+            self.stdout.write("Missed pickups: 1")
 
             for marker, dealer_reason, seller_reason in DEMO_CANCELLATIONS:
                 self._seed_cancellation(marker, dealer_reason, seller_reason)
@@ -449,13 +486,7 @@ class Command(BaseCommand):
                 and not slot_passed
             ):
                 return
-            for photo in existing.photos.all():
-                default_storage.delete(photo.file.name)
-            for order in existing.orders.exclude(scale_photo=""):
-                default_storage.delete(order.scale_photo.name)
-            existing.orders.all().delete()
-            existing.offers.all().delete()
-            existing.delete()
+            self._delete_listing(existing)
 
         categories = {c.name: c for c in Category.objects.all()}
         listing = create_listing(
@@ -495,6 +526,58 @@ class Command(BaseCommand):
             published = timezone.now() - timedelta(days=settings.LISTING_EXPIRY_DAYS + 1)
             Listing.objects.filter(pk=listing.pk).update(published_at=published)
             transition(listing, ListingStatus.EXPIRED, None)
+
+    def _delete_listing(self, listing):
+        """Remove a demo listing and everything hanging off it, files included."""
+        for photo in listing.photos.all():
+            default_storage.delete(photo.file.name)
+        for order in listing.orders.exclude(scale_photo=""):
+            default_storage.delete(order.scale_photo.name)
+        # A missed pickup (e.g. the scheduler ran after a seeded slot passed) leaves a
+        # strike and its penalty on the order; they go with it.
+        Due.objects.filter(strike__order__listing=listing).delete()
+        NoShowStrike.objects.filter(order__listing=listing).delete()
+        listing.orders.all().delete()
+        listing.offers.all().delete()
+        listing.delete()
+
+    def _seed_no_show(self, marker, missing_phone, other_phone, rates):
+        """Offers from two dealers; the first is accepted and confirmed for a slot that has
+        already passed, and the no-show job records it. Rebuilt once the strike has been
+        challenged, paid or resolved, can no longer be challenged, or is someone else's."""
+        listing = Listing.objects.get(address_line__startswith=marker)
+        strike = NoShowStrike.objects.filter(order__listing=listing).first()
+        if strike:
+            challenge_open = strike.created_at > timezone.now() - timedelta(
+                hours=settings.STRIKE_CHALLENGE_HOURS
+            )
+            unpaid = Due.objects.filter(strike=strike, status=DueStatus.UNPAID).exists()
+            unused = strike.status == StrikeStatus.ACTIVE and not strike.challenged_at and unpaid
+            if unused and challenge_open and strike.user.phone == missing_phone:
+                return
+            spec = next(s for s in DEMO_LISTINGS if s["address_line"].startswith(marker))
+            self._delete_listing(listing)
+            self._seed_listing(spec)
+            listing = Listing.objects.get(address_line__startswith=marker)
+        if listing.status != ListingStatus.OPEN:
+            return
+        categories = {c.name: c for c in Category.objects.all()}
+        offers = {}
+        for phone in (missing_phone, other_phone):
+            dealer = DealerProfile.objects.get(user__phone=phone)
+            offers[phone] = create_offer(
+                dealer, listing.pk, {categories[name].pk: paise for name, paise in rates.items()}
+            )
+        order, _ = accept_offer(listing.seller, offers[missing_phone])
+        start = datetime.combine(timezone.localdate() + timedelta(days=1), time(10), tzinfo=IST)
+        propose_slot(order, order.dealer.user, start)
+        confirm_slot(order, listing.seller)
+        # The confirmed slot ended an hour ago (past the grace period), with no check-in.
+        now = timezone.now()
+        Order.objects.filter(pk=order.pk).update(
+            slot_start=now - timedelta(hours=3), slot_end=now - timedelta(hours=1)
+        )
+        record_no_shows()
 
     def _seed_offer(self, marker, phone, rates):
         """Keep a live demo offer; otherwise make a fresh one through the offer rules."""

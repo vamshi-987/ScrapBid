@@ -50,8 +50,7 @@ services:
       minio:
         condition: service_started
 
-  # Runs scheduled management commands (see backend/scheduler.py).
-  # Restart it after changing job code: docker compose restart scheduler
+  # Runs scheduled management commands (see backend/scheduler.py). Reloads on code changes.
   scheduler:
     build: ./backend
     command: ["python", "scheduler.py"]

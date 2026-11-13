@@ -327,12 +327,15 @@ def test_seed_demo_listings(django_capture_on_commit_callbacks):
         "open",
         "open",
         "open",
+        "open",
         "picked_up",
         "pickup_scheduled",
     ]
     open_listings = Listing.objects.filter(status=ListingStatus.OPEN)
     assert all(listing.photos.exists() for listing in open_listings)
-    assert AuditLog.objects.filter(entity_type="listing", to_status="open").count() == 11
+    # 10 publishes (all but the draft) and listing 8 reopened by its dealer's cancel, as
+    # before; plus listing 12's publish and its reopening after the missed pickup.
+    assert AuditLog.objects.filter(entity_type="listing", to_status="open").count() == 13
     assert (
         AuditLog.objects.filter(entity_type="listing", to_status="expired", actor=None).count() == 1
     )
