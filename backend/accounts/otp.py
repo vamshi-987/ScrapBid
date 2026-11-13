@@ -129,6 +129,11 @@ def verify_otp(phone, code):
     raise error()
 
 
+def forget_phone(phone):
+    """Delete every challenge for a phone (used when its account is deleted)."""
+    OtpChallenge.objects.filter(phone_hash=_hash("phone", phone)).delete()
+
+
 def purge_old_challenges():
     """Delete challenges older than the retention period. Returns the number deleted."""
     deleted, _ = OtpChallenge.objects.filter(created_at__lt=timezone.now() - RETENTION).delete()

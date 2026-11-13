@@ -15,4 +15,6 @@ def normalize_phone(raw):
 
 def mask_phone(phone):
     """Hide all but the last 4 digits, e.g. +919876543210 -> +91XXXXXX3210."""
+    if phone.startswith("deleted-"):
+        return phone  # A deleted account's placeholder, not a number.
     return f"{phone[:3]}XXXXXX{phone[-4:]}"

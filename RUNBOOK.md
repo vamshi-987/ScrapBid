@@ -137,6 +137,15 @@ Firefox: open `about:config` and set `geo.provider.network.url` to `data:applica
 
 To test on a real phone on the same Wi-Fi, the app must be served over HTTPS, because phones only allow location and camera on secure pages. Use an HTTPS tunnel to `http://localhost`, for example `cloudflared tunnel --url http://localhost`. Open the `https://` address it prints on the phone.
 
+### Deleting an account
+
+Log in, open **Account** in the header and press **Delete my account**, then confirm.
+- `9000000004` (dual role) and `9000000005` (pending dealer) can be deleted. Their listings are cancelled, offers withdrawn, and dealer details and documents removed.
+- `9000000002` is refused (open pickups), and `9000000008` is refused (unpaid suspension fee).
+- Logging in again with a deleted number creates a new, empty account. Run `seed_demo` to give the demo number its sample data back; the deleted account stays as an anonymised record.
+
+In the admin, a deleted user shows `deleted-<id>` as the phone and a **Deleted at** time.
+
 ### Django admin
 
 Open http://localhost/admin. Its login page sends you to the web app's phone login, then brings you back. Only staff accounts get in, such as the seeded admin `9000000001`. Other logged-in users get "403: no admin access".

@@ -28,6 +28,7 @@ export function AppShell({ me, view, onViewChange, onLogout, children }: Props) 
           <nav className="shell-actions">
             <NotificationBell />
             {me.is_staff && <a href="/admin/">{t.admin}</a>}
+            <Link to="/account">{t.account}</Link>
             <button type="button" className="link" onClick={onLogout}>
               {strings.session.logOut}
             </button>

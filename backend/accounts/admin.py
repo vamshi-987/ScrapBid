@@ -34,7 +34,7 @@ class UserAdmin(admin.ModelAdmin):
     list_filter = ["is_active", "is_staff"]
     # Exact match only, so admins find a user by number without browsing numbers.
     search_fields = ["=phone"]
-    readonly_fields = ["date_joined", "last_login", "misuse_stats"]
+    readonly_fields = ["date_joined", "last_login", "deleted_at", "misuse_stats"]
     actions = ["suspend", "reactivate"]
 
     @admin.display(description="Phone")

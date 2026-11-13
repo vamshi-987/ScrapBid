@@ -3,6 +3,7 @@ import { Route, Routes } from "react-router";
 
 import { ensureCsrfCookie, fetchMe, logout, type Me } from "./api/auth";
 import { AppShell } from "./components/AppShell";
+import { AccountPage } from "./pages/AccountPage";
 import { DealerListingPage } from "./pages/DealerListingPage";
 import { DealerPage } from "./pages/DealerPage";
 import { HomePage } from "./pages/HomePage";
@@ -61,6 +62,7 @@ export function App() {
         <Route path="/orders/:id" element={<PickupPage />} />
         <Route path="/strikes" element={<StrikesPage />} />
         <Route path="/dues" element={<DuesPage />} />
+        <Route path="/account" element={<AccountPage onDeleted={() => handleLoggedIn(null)} />} />
         <Route
           path="*"
           element={
