@@ -74,7 +74,7 @@ function ChallengeForm({ onSend }: { onSend: (reason: string) => void }) {
       <label htmlFor="challenge-reason">{t.challengeReason}</label>
       <textarea
         id="challenge-reason"
-        maxLength={500}
+        maxLength={300}
         value={reason}
         onChange={(event) => setReason(event.target.value)}
       />
