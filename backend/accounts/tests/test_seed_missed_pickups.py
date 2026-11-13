@@ -54,7 +54,7 @@ def test_seed_has_a_missed_pickup_to_challenge_or_pay(django_capture_on_commit_c
     assert refused.json()["code"] == "blocked"
 
 
-@pytest.mark.parametrize("used", ["challenged", "paid", "removed", "too_old"])
+@pytest.mark.parametrize("used", ["challenged", "paid", "removed", "too_old", "someone_else"])
 def test_reseeding_gives_back_a_fresh_strike_once_it_is_used(
     used, django_capture_on_commit_callbacks
 ):
@@ -67,10 +67,14 @@ def test_reseeding_gives_back_a_fresh_strike_once_it_is_used(
     elif used == "removed":
         NoShowStrike.objects.filter(pk=strike.pk).update(status=StrikeStatus.REMOVED)
         Due.objects.filter(strike=strike).update(status=DueStatus.CANCELLED)
-    else:
+    elif used == "too_old":
         NoShowStrike.objects.filter(pk=strike.pk).update(
             created_at=timezone.now() - timedelta(hours=49)
         )
+    else:  # e.g. the demo's missing dealer was changed in the seed
+        other = User.objects.get(phone="+919000000007")
+        NoShowStrike.objects.filter(pk=strike.pk).update(user=other)
+        Due.objects.filter(strike=strike).update(user=other)
 
     call_command("seed_demo")
 
@@ -78,6 +82,7 @@ def test_reseeding_gives_back_a_fresh_strike_once_it_is_used(
     assert fresh.pk != strike.pk
     assert (fresh.status, fresh.challenged_at) == (StrikeStatus.ACTIVE, None)
     assert Due.objects.get(strike=fresh).status == DueStatus.UNPAID
+    assert fresh.user.phone == MISSING_DEALER
     assert NoShowStrike.objects.count() == 1
 
 

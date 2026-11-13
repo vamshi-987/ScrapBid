@@ -544,7 +544,7 @@ class Command(BaseCommand):
     def _seed_no_show(self, marker, missing_phone, other_phone, rates):
         """Offers from two dealers; the first is accepted and confirmed for a slot that has
         already passed, and the no-show job records it. Rebuilt once the strike has been
-        challenged, paid or resolved, or can no longer be challenged."""
+        challenged, paid or resolved, can no longer be challenged, or is someone else's."""
         listing = Listing.objects.get(address_line__startswith=marker)
         strike = NoShowStrike.objects.filter(order__listing=listing).first()
         if strike:
@@ -552,9 +552,9 @@ class Command(BaseCommand):
                 hours=settings.STRIKE_CHALLENGE_HOURS
             )
             unpaid = Due.objects.filter(strike=strike, status=DueStatus.UNPAID).exists()
-            if strike.status == StrikeStatus.ACTIVE and not strike.challenged_at and unpaid:
-                if challenge_open:
-                    return
+            unused = strike.status == StrikeStatus.ACTIVE and not strike.challenged_at and unpaid
+            if unused and challenge_open and strike.user.phone == missing_phone:
+                return
             spec = next(s for s in DEMO_LISTINGS if s["address_line"].startswith(marker))
             self._delete_listing(listing)
             self._seed_listing(spec)
