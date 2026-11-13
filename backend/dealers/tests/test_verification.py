@@ -381,7 +381,7 @@ def test_seed_demo_creates_reviewable_dealers():
     call_command("seed_demo")
 
     approved = DealerProfile.objects.filter(status=DealerStatus.APPROVED)
-    assert approved.count() == 4
+    assert approved.count() == 5
     assert DealerProfile.objects.filter(status=DealerStatus.PENDING).count() == 1
     ewaste = DealerProfile.objects.get(ewaste_authorised=True)
     assert ewaste.user.phone == "+919000000006"

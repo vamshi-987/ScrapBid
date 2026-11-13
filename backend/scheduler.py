@@ -1,7 +1,7 @@
 """Runs scheduled management commands every SCHEDULER_INTERVAL_SECONDS.
 
 Started by the `scheduler` service in Docker Compose. A failing job is logged
-and does not stop the other jobs or later runs.
+and does not stop the other jobs or later runs. Restarts itself when backend code changes.
 """
 
 import logging
@@ -74,4 +74,9 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    from django.utils import autoreload
+
+    # Restart when backend code changes, as the dev server does, so the jobs never run
+    # stale code after an edit or a pull. A built image's code never changes, so in
+    # production this never restarts.
+    autoreload.run_with_reloader(main)

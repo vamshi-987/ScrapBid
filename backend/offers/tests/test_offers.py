@@ -488,7 +488,8 @@ def test_seed_demo_offers():
     call_command("seed_demo")
 
     assert sorted(Offer.objects.values_list("id", flat=True)) == first
-    assert Offer.objects.filter(status=OfferStatus.ACTIVE).count() == 6
+    # 6 on open listings, plus the one restored after the missed pickup.
+    assert Offer.objects.filter(status=OfferStatus.ACTIVE).count() == 7
     ewaste_offers = Offer.objects.filter(listing__items__category__is_restricted=True)
     assert set(ewaste_offers.values_list("dealer__user__phone", flat=True)) == {"+919000000006"}
     assert all(offer.is_live for offer in Offer.objects.filter(status=OfferStatus.ACTIVE))

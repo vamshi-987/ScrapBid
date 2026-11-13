@@ -283,11 +283,12 @@ def test_seeded_dealers_see_the_expected_listings():
         ids = feed_ids(client_for(profile))
         return sorted(phones[i][-1] for i in ids)
 
-    # Listings by seller: ...2 = Seller 1 (open; draft hidden), ...3 = Seller 2 (e-waste),
-    # ...4 = the dual-role dealer's bulk copper.
-    assert visible("+919000000006") == ["2", "3", "4"]  # Begumpet, e-waste authorised
-    assert visible("+919000000007") == ["2", "4"]  # Secunderabad: e-waste hidden
-    assert visible("+919000000004") == ["2"]  # dual role: own and e-waste hidden
+    # Listings by seller: ...2 = Seller 1 (open; draft hidden), ...3 = Seller 2 (e-waste,
+    # and the iron listing reopened after a missed pickup), ...4 = the dual-role dealer's
+    # bulk copper.
+    assert visible("+919000000006") == ["2", "3", "3", "4"]  # Begumpet, e-waste authorised
+    assert visible("+919000000007") == ["2", "3", "4"]  # Secunderabad: e-waste hidden
+    assert visible("+919000000004") == ["2", "3"]  # dual role: own and e-waste hidden
     assert visible("+919000000008") == []  # Warangal: out of range
     pending = DealerProfile.objects.get(user__phone="+919000000005")
     assert client_for(pending).get(FEED).status_code == 403
