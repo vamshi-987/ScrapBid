@@ -25,6 +25,10 @@ class ListingPhotoSerializer(serializers.ModelSerializer):
         return presigned_url(photo.file.name)
 
 
+class CancelSerializer(serializers.Serializer):
+    reason = serializers.CharField(max_length=300, allow_blank=True, default="")
+
+
 class PhotoUploadSerializer(serializers.Serializer):
     file = serializers.FileField()
 

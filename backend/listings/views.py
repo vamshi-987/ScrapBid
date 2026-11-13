@@ -14,6 +14,7 @@ from listings import photos, services
 from listings.feed import visible_to_dealer
 from listings.models import Category, Listing, ListingPhoto
 from listings.serializers import (
+    CancelSerializer,
     CategorySerializer,
     DealerListingSerializer,
     ListingDetailSerializer,
@@ -150,8 +151,10 @@ class ListingCancelView(APIView):
 
     def post(self, request, listing_id):
         listing = own_listing(request, listing_id)
+        serializer = CancelSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
         try:
-            services.cancel_listing(listing, request.user, request.data.get("reason", ""))
+            services.cancel_listing(listing, request.user, serializer.validated_data["reason"])
         except services.ListingError as error:
             if error.code == "reason_required":
                 return Response(

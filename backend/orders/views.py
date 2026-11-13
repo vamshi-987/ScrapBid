@@ -1,4 +1,5 @@
 import json
+import math
 
 from django.conf import settings
 from django.db.models import Case, Q, When
@@ -164,7 +165,14 @@ class OrderContactView(APIView):
 
 
 class ReasonSerializer(serializers.Serializer):
-    reason = serializers.CharField(max_length=300, allow_blank=True)
+    reason = serializers.CharField(max_length=300, allow_blank=True, default="")
+
+
+class CompleteSerializer(serializers.Serializer):
+    code = serializers.CharField(max_length=20, allow_blank=True, allow_null=True, default="")
+    payment_method = serializers.CharField(
+        max_length=20, allow_blank=True, allow_null=True, default=""
+    )
 
 
 class CheckInSerializer(serializers.Serializer):
@@ -274,6 +282,8 @@ class WeighView(APIView):
             lines = json.loads(request.data.get("lines") or "[]")
             latitude = float(request.data["latitude"])
             longitude = float(request.data["longitude"])
+            if not (math.isfinite(latitude) and math.isfinite(longitude)):
+                raise ValueError("not a position")
         except (ValueError, KeyError, TypeError):
             return Response(
                 {
@@ -334,13 +344,10 @@ class CompleteOrderView(APIView):
 
     def post(self, request, order_id):
         order = my_order(request, order_id)
+        serializer = CompleteSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
         try:
-            handover.complete_order(
-                order,
-                request.user,
-                code=request.data.get("code", ""),
-                payment_method=request.data.get("payment_method", ""),
-            )
+            handover.complete_order(order, request.user, **serializer.validated_data)
         except handover.HandoverError as error:
             http_status = (
                 status.HTTP_409_CONFLICT
@@ -359,8 +366,10 @@ class DisputeView(APIView):
 
     def post(self, request, order_id):
         order = my_order(request, order_id)
+        serializer = ReasonSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
         try:
-            disputes.open_dispute(order, request.user, request.data.get("reason", ""))
+            disputes.open_dispute(order, request.user, serializer.validated_data["reason"])
         except disputes.DisputeError as error:
             http_status = (
                 status.HTTP_400_BAD_REQUEST

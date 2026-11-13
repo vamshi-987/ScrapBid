@@ -121,6 +121,8 @@ def confirm_slot(order, user):
         party = party_of(order, user)
         if party is None:
             raise SlotError("not_participant")
+        if order.slot_status == SlotStatus.CONFIRMED and order.slot_proposed_by != party:
+            return order  # A retry by the side that confirmed: already done.
         if order.slot_status != SlotStatus.PROPOSED:
             raise SlotError("not_proposed")
         if order.slot_proposed_by == party:

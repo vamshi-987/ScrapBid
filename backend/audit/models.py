@@ -25,7 +25,8 @@ class AuditLog(models.Model):
     )
     from_status = models.CharField(max_length=30)
     to_status = models.CharField(max_length=30)
-    reason = models.CharField(max_length=300, blank=True)
+    # Room for a 300-character reason with a prefix, and for 500-character admin notes.
+    reason = models.CharField(max_length=500, blank=True)
     # Extra facts about the change, such as old and new pickup slots.
     details = models.JSONField(default=dict, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
