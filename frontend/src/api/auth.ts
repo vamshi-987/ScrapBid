@@ -84,3 +84,22 @@ export async function verifyOtp(phone: string, code: string): Promise<VerifyOtpR
 export async function logout(): Promise<void> {
   await postJson("/api/auth/logout");
 }
+
+export type DeleteAccountResult =
+  { ok: true } | { ok: false; reason: "active_order" | "unpaid_dues" | "error" };
+
+const DELETE_REASONS = ["active_order", "unpaid_dues"] as const;
+
+/** Deletes the logged-in account. The server ends the session on success. */
+export async function deleteAccount(): Promise<DeleteAccountResult> {
+  try {
+    const response = await postJson("/api/auth/delete-account");
+    if (response.status === 204) return { ok: true };
+    const body = (await response.json().catch(() => ({}))) as { code?: string };
+    const reason = DELETE_REASONS.find((known) => known === body.code);
+    if (reason) return { ok: false, reason };
+  } catch {
+    // Network failure: fall through to a generic error.
+  }
+  return { ok: false, reason: "error" };
+}

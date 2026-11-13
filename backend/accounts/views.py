@@ -15,6 +15,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from accounts import otp
+from accounts.deletion import DeletionError, delete_account
 from accounts.serializers import MeSerializer, OtpRequestSerializer, OtpVerifySerializer
 
 ERROR_MESSAGES = {
@@ -102,6 +103,20 @@ class MeView(APIView):
 
     def get(self, request):
         return Response(MeSerializer(request.user).data)
+
+
+class DeleteAccountView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        try:
+            delete_account(request.user)
+        except DeletionError as error:
+            return Response(
+                {"detail": str(error), "code": error.code}, status=status.HTTP_409_CONFLICT
+            )
+        logout(request)
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 class AdminLoginRedirectView(View):

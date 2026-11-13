@@ -44,6 +44,8 @@ class User(AbstractBaseUser, PermissionsMixin):
     is_active = models.BooleanField(default=True)
     is_staff = models.BooleanField(default=False)
     date_joined = models.DateTimeField(default=timezone.now)
+    # Set when the user deleted the account; personal data is anonymised then.
+    deleted_at = models.DateTimeField(null=True, blank=True)
 
     objects = UserManager()
 

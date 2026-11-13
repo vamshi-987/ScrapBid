@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { requestOtp, verifyOtp } from "./auth";
+import { deleteAccount, requestOtp, verifyOtp } from "./auth";
 
 function respondWith(response: Response | Error) {
   const fetchMock =
@@ -73,5 +73,29 @@ describe("verifyOtp", () => {
     respondWith(response);
 
     expect(await verifyOtp("9876543210", "123456")).toEqual(expected);
+  });
+});
+
+describe("deleteAccount", () => {
+  it("posts with the CSRF token and no body", async () => {
+    const fetchMock = respondWith(new Response(null, { status: 204 }));
+
+    expect(await deleteAccount()).toEqual({ ok: true });
+    const [path, init] = fetchMock.mock.calls[0];
+    expect(path).toBe("/api/auth/delete-account");
+    expect(init.method).toBe("POST");
+    expect(init.body).toBeUndefined();
+    expect(new Headers(init.headers).get("X-CSRFToken")).toBe("tok123");
+  });
+
+  it.each([
+    [json(409, { code: "active_order" }), { ok: false, reason: "active_order" }],
+    [json(409, { code: "unpaid_dues" }), { ok: false, reason: "unpaid_dues" }],
+    [json(403, { detail: "Not logged in" }), { ok: false, reason: "error" }],
+    [new Error("offline"), { ok: false, reason: "error" }],
+  ])("maps the response to a result (%#)", async (response, expected) => {
+    respondWith(response);
+
+    expect(await deleteAccount()).toEqual(expected);
   });
 });

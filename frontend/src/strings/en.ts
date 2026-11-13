@@ -19,6 +19,7 @@ export const en = {
     logOut: "Log out",
   },
   shell: {
+    account: "Account",
     admin: "Admin",
     viewSwitchLabel: "Choose a view",
     views: { selling: "Selling", buying: "Buying" },
@@ -493,6 +494,22 @@ export const en = {
       not_unpaid: "This is already paid or cancelled.",
       not_paid: "We haven't received the payment yet.",
       gateway_unavailable: "Payments are unavailable right now. Try again shortly.",
+      error: "Something went wrong. Check your connection and try again.",
+    },
+  },
+  account: {
+    title: "Your account",
+    deleteTitle: "Delete account",
+    removed:
+      "Your phone number, addresses, listing photos, dealer details and documents, and notifications are removed.",
+    kept: "Completed and cancelled pickups, with their amounts, stay on record without your details.",
+    closed: "Your draft and open listings are cancelled and your live offers are withdrawn.",
+    again: "You can sign up again later with the same number, as a new account.",
+    deleteButton: "Delete my account",
+    confirm: "Delete your account? This can't be undone.",
+    errors: {
+      active_order: "Finish or cancel your open pickups first.",
+      unpaid_dues: "Pay your outstanding penalties and fees first.",
       error: "Something went wrong. Check your connection and try again.",
     },
   },
